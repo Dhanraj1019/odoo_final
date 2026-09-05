@@ -66,8 +66,8 @@ export default function TimeOffAllocationsPage() {
       if (empRes.ok && (empRes.data?.employees || empRes.employees)) {
         setEmployees(empRes.data?.employees || empRes.employees || []);
       }
-      if (typesRes.ok && (typesRes.data?.types || typesRes.types)) {
-        setTypes(typesRes.data?.types || typesRes.types || []);
+      if (typesRes.ok) {
+        setTypes(typesRes.data?.timeOffTypes || []);
       }
     } catch (err) {
       console.error("Failed to load time off allocations:", err);

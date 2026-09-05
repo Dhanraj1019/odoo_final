@@ -30,8 +30,8 @@ export default function TimeOffTypesPage() {
     setIsLoading(true);
     try {
       const res = await timeOffApi.listTypes({ status: statusFilter });
-      if (res.ok && (res.data?.types || res.types)) {
-        setTypes(res.data?.types || res.types || []);
+      if (res.ok) {
+        setTypes(res.data?.timeOffTypes || []);
       }
     } catch (err) {
       console.error("Failed to load time off types:", err);

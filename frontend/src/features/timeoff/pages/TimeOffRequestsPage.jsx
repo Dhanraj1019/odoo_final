@@ -33,7 +33,7 @@ export default function TimeOffRequestsPage() {
     : currentUser?.role
     ? [currentUser.role]
     : [];
-  const isEmployeeOnly = userRoles.length === 1 && userRoles[0] === ROLES.EMPLOYEE;
+  const isEmployeeOnly = userRoles.length > 0 && userRoles.every((role) => role === ROLES.EMPLOYEE);
   // Approvals & Refusals can be performed by Admin, HR Manager, HR Payroll Manager, HR Payroll User
   const canAction = userRoles.some((role) => ROLE_GROUPS.HR_MANAGEMENT.includes(role));
   const canWrite = userRoles.some((role) => ROLE_GROUPS.HR_MANAGEMENT.includes(role));
@@ -72,8 +72,8 @@ export default function TimeOffRequestsPage() {
       if (empRes.ok && (empRes.data?.employees || empRes.employees)) {
         setEmployees(empRes.data?.employees || empRes.employees || []);
       }
-      if (typesRes.ok && (typesRes.data?.types || typesRes.types)) {
-        setTypes(typesRes.data?.types || typesRes.types || []);
+      if (typesRes.ok) {
+        setTypes(typesRes.data?.timeOffTypes || []);
       }
     } catch (err) {
       console.error("Failed to load time off requests:", err);
@@ -225,7 +225,12 @@ export default function TimeOffRequestsPage() {
         {/* Personal or Scoped Leave Balances Card */}
         {(isEmployeeOnly || employeeFilterId) && (
           <LeaveBalanceCard
-            employeeId={employeeFilterId || currentUser?.employeeId || ""}
+            employeeId={
+              employeeFilterId ||
+              currentUser?.employee?._id ||
+              currentUser?.employeeId ||
+              (typeof currentUser?.employee === "string" ? currentUser.employee : "")
+            }
             onRequestLeave={() => setIsModalOpen(true)}
             refreshTrigger={refreshCounter}
           />
@@ -374,6 +379,7 @@ export default function TimeOffRequestsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         preselectedEmployeeId={employeeFilterId}
+        isEmployeeView={isEmployeeOnly}
         onSuccess={() => {
           setRefreshCounter((c) => c + 1);
         }}

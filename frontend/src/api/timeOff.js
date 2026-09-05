@@ -22,7 +22,19 @@ class TimeOffAPI {
         credentials: "include",
       });
       const result = await response.json();
-      return { ok: response.ok, ...result };
+      const typesList =
+        result.data?.timeOffTypes ||
+        result.data?.types ||
+        [];
+
+      return {
+        ok: response.ok,
+        ...result,
+        data: {
+          ...result.data,
+          timeOffTypes: typesList,
+        },
+      };
     } catch (error) {
       console.error("listTypes error:", error);
       return { ok: false, success: false, message: error.message || "Failed to fetch leave types" };

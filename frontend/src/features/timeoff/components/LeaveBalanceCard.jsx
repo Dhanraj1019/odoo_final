@@ -33,8 +33,8 @@ export default function LeaveBalanceCard({
       if (allocRes.ok && (allocRes.data?.allocations || allocRes.allocations)) {
         setAllocations(allocRes.data?.allocations || allocRes.allocations || []);
       }
-      if (typesRes.ok && (typesRes.data?.types || typesRes.types)) {
-        setTypes(typesRes.data?.types || typesRes.types || []);
+      if (typesRes.ok) {
+        setTypes(typesRes.data?.timeOffTypes || []);
       }
     } catch (err) {
       console.error("Failed to load leave balances:", err);

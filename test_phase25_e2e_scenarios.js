@@ -107,7 +107,7 @@ async function runPhase25E2ESuite() {
     // 1A. Department & Job Position
     const deptRes = await request(
       { hostname: "localhost", port: 5000, path: "/api/departments", method: "POST", headers: { "Content-Type": "application/json", Cookie: admin.cookie } },
-      { name: `E2E Tech Dept ${ts}`, code: `D_${ts}`.slice(0, 10) }
+      { name: `E2E Tech Dept ${ts}`, code: `D_${String(ts).slice(-8)}` }
     );
     assert(deptRes.statusCode === 201, "Created unique Department (201)");
     const departmentId = deptRes.body?.data?.department?._id || deptRes.body?.department?._id;
@@ -138,7 +138,7 @@ async function runPhase25E2ESuite() {
 
     // 1C. Employee Master Creation
     const empEmail = `e2e_staff_${ts}@peoplepay360.local`;
-    const empCode = `E2E_${ts}`.slice(0, 10);
+    const empCode = `E_${String(ts).slice(-8)}`;
     const empRes = await request(
       { hostname: "localhost", port: 5000, path: "/api/employees", method: "POST", headers: { "Content-Type": "application/json", Cookie: hrManager.cookie } },
       {
@@ -363,7 +363,7 @@ async function runPhase25E2ESuite() {
       { hostname: "localhost", port: 5000, path: "/api/time-off-types", method: "POST", headers: { "Content-Type": "application/json", Cookie: admin.cookie } },
       {
         name: `Paid Earned Leave ${ts}`,
-        code: `EL_${ts}`.slice(0, 10),
+        code: `EL_${String(ts).slice(-7)}`,
         unit: "Days",
         requiresApproval: true,
         requiresAllocation: true,
