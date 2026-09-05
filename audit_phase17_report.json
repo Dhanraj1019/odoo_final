@@ -1,0 +1,202 @@
+[
+  {
+    "id": "A1-SCHEMA-MODEL",
+    "category": "Source Code",
+    "scenario": "Employee Mongoose Schema fields verification",
+    "expected": "fullName, employeeCode, email, department, jobPosition, manager, workingSchedule, bankDetails",
+    "actual": "All schema fields present",
+    "status": "PASS"
+  },
+  {
+    "id": "A2-FORM-SELF-MGR",
+    "category": "Source Code",
+    "scenario": "Employee Form prevents selecting self as manager during edit",
+    "expected": "isEditing && emp._id === initialData._id filter in candidateManagers",
+    "actual": "Self exclusion filter present",
+    "status": "PASS"
+  },
+  {
+    "id": "A3-FORM-TERM-MGR",
+    "category": "Source Code",
+    "scenario": "Employee Form excludes terminated employees from candidate managers",
+    "expected": "emp.status === 'Terminated' excluded",
+    "actual": "Terminated filter present",
+    "status": "PASS"
+  },
+  {
+    "id": "A4-ROUTER-PROTECTION",
+    "category": "Source Code",
+    "scenario": "Frontend router protects /employees, /employees/:id, and /me with RequireRole",
+    "expected": "All 3 routes declared with RequireRole guards",
+    "actual": "All routes guarded",
+    "status": "PASS"
+  },
+  {
+    "id": "A5-RELATED-TABS",
+    "category": "Source Code",
+    "scenario": "Related Records smart tabs have deep-links without fake counts",
+    "expected": "Deep-links with ?employee= and no fake count badges",
+    "actual": "Smart navigation deep links verified with zero fake counts",
+    "status": "PASS"
+  },
+  {
+    "id": "B1-AUTH-ADMIN",
+    "category": "Authentication",
+    "scenario": "Admin login (admin@peoplepay360.local)",
+    "expected": "200 OK with session cookie",
+    "actual": "200 OK",
+    "status": "PASS"
+  },
+  {
+    "id": "B2-AUTH-HR-MGR",
+    "category": "Authentication",
+    "scenario": "HR Manager login (hrmanager@peoplepay360.local)",
+    "expected": "200 OK with session cookie",
+    "actual": "200 OK",
+    "status": "PASS"
+  },
+  {
+    "id": "B3-AUTH-PAYROLL-MGR",
+    "category": "Authentication",
+    "scenario": "HR Payroll Manager login (payrollmanager@peoplepay360.local)",
+    "expected": "200 OK with session cookie",
+    "actual": "200 OK",
+    "status": "PASS"
+  },
+  {
+    "id": "B4-AUTH-PAYROLL-USER",
+    "category": "Authentication",
+    "scenario": "HR Payroll User login (payrolluser@peoplepay360.local)",
+    "expected": "200 OK with session cookie",
+    "actual": "200 OK",
+    "status": "PASS"
+  },
+  {
+    "id": "B5-AUTH-EMPLOYEE",
+    "category": "Authentication",
+    "scenario": "Employee login (employee@peoplepay360.local)",
+    "expected": "200 OK with session cookie",
+    "actual": "200 OK",
+    "status": "PASS"
+  },
+  {
+    "id": "C1-RBAC-ADMIN-DIR",
+    "category": "RBAC",
+    "scenario": "Admin GET /api/employees",
+    "expected": "200 OK",
+    "actual": "200",
+    "status": "PASS"
+  },
+  {
+    "id": "C2-RBAC-HRMGR-DIR",
+    "category": "RBAC",
+    "scenario": "HR Manager GET /api/employees",
+    "expected": "200 OK",
+    "actual": "200",
+    "status": "PASS"
+  },
+  {
+    "id": "C3-RBAC-PAYMGR-DIR",
+    "category": "RBAC",
+    "scenario": "HR Payroll Manager GET /api/employees",
+    "expected": "200 OK",
+    "actual": "200",
+    "status": "PASS"
+  },
+  {
+    "id": "C4-RBAC-PAYUSER-DIR",
+    "category": "RBAC",
+    "scenario": "HR Payroll User GET /api/employees",
+    "expected": "200 OK",
+    "actual": "200",
+    "status": "PASS"
+  },
+  {
+    "id": "C5-RBAC-EMP-DIR",
+    "category": "RBAC",
+    "scenario": "Employee GET /api/employees (must be blocked)",
+    "expected": "403 Forbidden",
+    "actual": "403",
+    "status": "PASS"
+  },
+  {
+    "id": "D1-CRUD-CREATE",
+    "category": "Employee CRUD",
+    "scenario": "POST /api/employees creates employee with full schema",
+    "expected": "201 Created with employee ID",
+    "actual": "201 Created",
+    "status": "PASS"
+  },
+  {
+    "id": "D2-CRUD-DUP-CODE",
+    "category": "Employee CRUD",
+    "scenario": "POST /api/employees rejects duplicate employeeCode",
+    "expected": "409 Conflict",
+    "actual": "409",
+    "status": "PASS"
+  },
+  {
+    "id": "D3-CRUD-DUP-EMAIL",
+    "category": "Employee CRUD",
+    "scenario": "POST /api/employees rejects duplicate email",
+    "expected": "409 Conflict",
+    "actual": "409",
+    "status": "PASS"
+  },
+  {
+    "id": "D4-CRUD-READ",
+    "category": "Employee Detail",
+    "scenario": "GET /api/employees/:id fetches full record with populated references",
+    "expected": "200 OK, populated department & manager",
+    "actual": "200 OK with correct record",
+    "status": "PASS"
+  },
+  {
+    "id": "D5-CRUD-UPDATE",
+    "category": "Employee CRUD",
+    "scenario": "PUT /api/employees/:id updates employee details",
+    "expected": "200 OK with updated fullName",
+    "actual": "200 OK with updated name",
+    "status": "PASS"
+  },
+  {
+    "id": "D6-BACKEND-SELF-MGR",
+    "category": "Employee Validation",
+    "scenario": "PUT /api/employees/:id rejects assigning self as manager",
+    "expected": "400 Bad Request",
+    "actual": "400",
+    "status": "PASS"
+  },
+  {
+    "id": "D7-CRUD-TERMINATE",
+    "category": "Employee CRUD",
+    "scenario": "DELETE /api/employees/:id soft terminates employee",
+    "expected": "200 OK with status = 'Terminated'",
+    "actual": "200 OK (Terminated)",
+    "status": "PASS"
+  },
+  {
+    "id": "E1-SELF-PROFILE",
+    "category": "Self Service",
+    "scenario": "GET /api/employees/me returns authenticated employee profile",
+    "expected": "200 OK with user's linked record",
+    "actual": "200 OK (Audited Employee 1788601293461)",
+    "status": "PASS"
+  },
+  {
+    "id": "E2-BLOCK-OTHER-DETAIL",
+    "category": "Security & RBAC",
+    "scenario": "Employee role GET /api/employees/:id on another employee",
+    "expected": "403 Forbidden",
+    "actual": "403",
+    "status": "PASS"
+  },
+  {
+    "id": "F1-NO-PWD-LEAK",
+    "category": "Security",
+    "scenario": "GET /api/employees response does not contain passwordHash",
+    "expected": "Zero occurrences of passwordHash",
+    "actual": "Zero passwordHash in response",
+    "status": "PASS"
+  }
+]
