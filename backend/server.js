@@ -1,37 +1,82 @@
-const express = require("express")
-const app=express()
-const cors = require("cors")
-const newsRouter = require("./routers/news.route.js")
-const port =5000;
-app.listen(port,()=>{
-    console.log(`express is listining on port ${port}`);
-})
+require("dotenv").config();
+const path = require("path");
+const express = require("express");
+const cors = require("cors");
+const session = require("express-session");
+const MongoStore = require("connect-mongo").default;
+const passport = require("passport");
+const methodOverride = require("method-override");
+const LocalStrategy = require("passport-local");
+const mongoose = require("mongoose");
 
-app.use(cors(
-    {
-        origin: [
-            "http://localhost:5173",
-            "https://cryx-iota.vercel.app",
-        ],
-    }
-));
+const connectDB = require("./config/db");
+require("./config/passport"); // Passport strategies and serialize/deserialize setup
+const authRouter = require("./routers/authRouter");
 
-app.use("/api/news",newsRouter);
+const app = express();
+const port = process.env.PORT || 5000;
+const mongoUrl = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/odoo_db";
 
+// Connect to MongoDB
+connectDB();
 
-//=========== ping render continuesly in every 14 sec ==========
+// CORS configuration (allow credentials for session cookies)
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-if (process.env.RENDER_EXTERNAL_URL) {
-    const KEEP_ALIVE_URL = `${process.env.RENDER_EXTERNAL_URL}/health`;
-    const INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
+// Body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-    setInterval(async () => {
-        try {
-            await fetch(KEEP_ALIVE_URL);
-        } catch (_) {
-            // Non-critical — don't crash if the ping fails
-        }
-    }, INTERVAL_MS);
+// Method override middleware
+app.use(methodOverride("_method"));
 
-    console.log(`[keep-alive] pinging ${KEEP_ALIVE_URL} every 14 min`);
-}
+// MongoDB Session Store
+const store = MongoStore.create({
+  mongoUrl: mongoUrl,
+  crypto: {
+    secret: process.env.SESSION_SECRET || "odoo_super_secret_session_key_2026",
+  },
+  touchAfter: 24 * 3600, // lazy session update interval (24 hours)
+});
+
+store.on("error", (err) => {
+  console.error("[Session Store] Error:", err);
+});
+
+// Express Session configuration with MongoDB store
+app.use(
+  session({
+    store: store,
+    secret: process.env.SESSION_SECRET || "odoo_super_secret_session_key_2026",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
+  })
+);
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Health route
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Authentication Routes
+app.use("/api/auth", authRouter);
+
+// Start server
+app.listen(port, () => {
+  console.log(`[Server] Express is listening on port ${port}`);
+});

@@ -1,8 +1,9 @@
 import { useForm } from 'react-hook-form'
 import Input from '../Input'
 import Button from '../Button/Button'
-import AuthObj from '../../../Supabase/auth';
+import authApi from '../../api/auth';
 import { useDispatch } from 'react-redux';
+import { login as statelogin } from '../../../store/AuthSclice';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Loader from '../Loader';
@@ -23,14 +24,20 @@ export default function SignUp() {
           ...data,
           imageurl: tempPath,
           publicurl: tempPublicUrl,
-          phone: data.phone?.trim() || null,
+          phone: data.phone?.trim() || "",
         };
-        const result = await AuthObj.saveProfile({ data: data2 });
+        const result = await authApi.signup(data2);
         setLoader(false);
-        if (result) {
+        if (result && result.success) {
+          dispatch(
+            statelogin({
+              user: result.user,
+              role: result.user?.role || "user",
+            })
+          );
           dispatch(
             setNotification({
-              message: "Signup successful! Welcome aboard.",
+              message: result.message || "Signup successful! Welcome aboard.",
               type: "success",
               title: "Signup",
             })
@@ -39,7 +46,7 @@ export default function SignUp() {
         } else {
           dispatch(
             setNotification({
-              message: "Error during signup. Email might already be taken.",
+              message: result?.message || "Error during signup. Email might already be taken.",
               type: "error",
               title: "Signup",
             })
@@ -59,11 +66,13 @@ export default function SignUp() {
   };
 
   const handelGoogle = async () => {
-    try {
-      await AuthObj.googleAuth();
-    } catch (e) {
-      console.log("error in google :", e);
-    }
+    dispatch(
+      setNotification({
+        title: "Google Sign Up",
+        message: "Google authentication with MongoDB is under development.",
+        type: "info",
+      })
+    );
   };
 
   if (loader) {

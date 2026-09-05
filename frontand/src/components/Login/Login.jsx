@@ -1,34 +1,40 @@
 import { useForm } from 'react-hook-form'
 import Input from '../Input'
 import Button from '../Button/Button'
-import AuthObj from '../../../Supabase/auth';
+import authApi from '../../api/auth';
 import { useDispatch } from 'react-redux';
-import {login as statelogin} from '../../../store/AuthSclice'
+import { login as statelogin } from '../../../store/AuthSclice'
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import Loader from '../Loader';
 import { setNotification } from '../../../store/Notifucation';
 export default function Login() {
   const { handleSubmit, register } = useForm();
-  const dispatch=useDispatch();
-  const navigate=useNavigate();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [loader, setLoader] = useState(false);
 
   const login = async (data) => {
     if (data) {
       setLoader(true);
       try {
-        const result = await AuthObj.signIn({
+        const result = await authApi.login({
           email: data.email,
           password: data.password,
         });
 
         setLoader(false);
-        if (result && !result.error) {
+        if (result && result.success) {
+          dispatch(
+            statelogin({
+              user: result.user,
+              role: result.user?.role || "user",
+            })
+          );
           dispatch(
             setNotification({
               title: "Login",
-              message: "Logged in successfully!",
+              message: result.message || "Logged in successfully!",
               type: "success",
             })
           );
@@ -37,7 +43,7 @@ export default function Login() {
           dispatch(
             setNotification({
               title: "Login Failed",
-              message: "Invalid credentials or user not found.",
+              message: result?.message || "Invalid credentials or user not found.",
               type: "error",
             })
           );
@@ -56,11 +62,13 @@ export default function Login() {
   };
 
   const handelGoogle = async () => {
-    try {
-      await AuthObj.googleAuth();
-    } catch (e) {
-      console.log("error in google :", e);
-    }
+    dispatch(
+      setNotification({
+        title: "Google Sign In",
+        message: "Google authentication with MongoDB is under development.",
+        type: "info",
+      })
+    );
   };
 
   if (loader) {

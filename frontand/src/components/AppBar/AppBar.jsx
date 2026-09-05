@@ -3,7 +3,7 @@ import Logo from '../Logo/Logo'
 import { Link, useNavigate } from 'react-router-dom'
 import {logout as stateLogout} from '../../../store/AuthSclice'
 import { useSelector,useDispatch } from 'react-redux'
-import AuthObj from '../../../Supabase/auth'
+import authApi from '../../api/auth'
 import { setNotification } from '../../../store/Notifucation'
 export default function AppBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -19,21 +19,22 @@ export default function AppBar() {
     { title: 'contact us', href: '/contect-us' ,scroll:true,target:"contect-us"},
   ]
   const logout=async()=>{
-    console.log("in logour")
-    const result = await AuthObj.signOut();
-    console.log("after db logout");
-    if(result){
-      dispatch(setNotification({
-        type:"success",message:"Logged out successfully",title:"Logout"
-      }))
-      console.log("notification dispatched ");
+    try {
+      const result = await authApi.logout();
+      if (result && result.success) {
+        dispatch(setNotification({
+          type:"success",message: result.message || "Logged out successfully",title:"Logout"
+        }));
+      } else {
+        dispatch(setNotification({
+          type:"success",message:"Logged out successfully",title:"Logout"
+        }));
+      }
       dispatch(stateLogout());
-      navigate("/home")
-    }else{
-      dispatch(setNotification({
-        type:"error",message:"Logout failed, please try again",title:"Logout"
-      }))
-      navigate("/home")
+      navigate("/home");
+    } catch (e) {
+      dispatch(stateLogout());
+      navigate("/home");
     }
   }
 
