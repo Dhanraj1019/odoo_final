@@ -21,7 +21,7 @@ import PageContainer from "../../../components/layout/PageContainer";
 import EmployeeProfileHeader from "../components/EmployeeProfileHeader";
 import RelatedRecordsTabs from "../components/RelatedRecordsTabs";
 import EmployeeFormModal from "../components/EmployeeFormModal";
-import TerminateModal from "../components/TerminateModal";
+import DeleteEmployeeModal from "../components/DeleteEmployeeModal";
 import employeesApi from "../../../api/employees";
 import referencesApi from "../../../api/references";
 
@@ -38,7 +38,7 @@ export default function EmployeeDetailPage() {
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showAccountSecret, setShowAccountSecret] = useState(false);
 
   const fetchEmployeeData = useCallback(async () => {
@@ -136,7 +136,7 @@ export default function EmployeeDetailPage() {
         <EmployeeProfileHeader
           employee={employee}
           onEdit={() => setIsEditModalOpen(true)}
-          onTerminate={() => setIsTerminateModalOpen(true)}
+          onDelete={() => setIsDeleteModalOpen(true)}
         />
 
         {/* Related Operations Quick Links */}
@@ -287,15 +287,13 @@ export default function EmployeeDetailPage() {
         candidateEmployees={candidateEmployees}
       />
 
-      {/* Terminate Confirmation Modal */}
-      <TerminateModal
-        isOpen={isTerminateModalOpen}
-        onClose={() => setIsTerminateModalOpen(false)}
+      {/* Delete Confirmation Modal */}
+      <DeleteEmployeeModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
         employee={employee}
-        onSuccess={(updated) => {
-          setEmployee(updated);
-        }}
       />
     </PageContainer>
   );
 }
+

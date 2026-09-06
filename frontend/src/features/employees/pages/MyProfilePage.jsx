@@ -135,19 +135,13 @@ export default function MyProfilePage() {
       breadcrumbs={[{ label: "My Profile" }]}
     >
       <div className="space-y-6">
-        {/* Profile Header Banner */}
+        {/* 1. EMPLOYEE PROFILE SECTION */}
         <EmployeeProfileHeader employee={employee} isSelfView={true} />
 
-        {/* Self-Service Check-In / Check-Out Widget */}
+        {/* 2. SMART ATTENDANCE CONSOLE */}
         <AttendanceWidget />
 
-        {/* Leave Balance Quotas */}
-        <LeaveBalanceCard
-          employeeId={employee._id}
-          onRequestLeave={() => navigate("/time-off/requests")}
-        />
-
-        {/* Self-Service Quick Action Modules */}
+        {/* 3. SELF-SERVICE OPERATIONAL PORTALS */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">
             Self-Service Operational Portals
@@ -184,7 +178,13 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* Detailed Panels */}
+        {/* 4. LEAVE QUOTA & BALANCES */}
+        <LeaveBalanceCard
+          employeeId={employee._id}
+          onRequestLeave={() => navigate("/time-off/requests")}
+        />
+
+        {/* 5. BOTTOM INFORMATION SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Organization & Schedule */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">

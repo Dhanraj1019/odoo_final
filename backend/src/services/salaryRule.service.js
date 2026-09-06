@@ -65,11 +65,30 @@ exports.getByCode = async (code) => {
 exports.create = async (data) => {
   if (data.code) {
     data.code = data.code.toUpperCase();
+    const existing = await SalaryRule.findOne({ code: data.code });
+    if (existing) {
+      const err = new Error("This rule code is already in use. Try a different code.");
+      err.statusCode = 409;
+      err.field = "code";
+      err.errors = { code: "This rule code is already in use. Try a different code." };
+      throw err;
+    }
   }
   validateRuleFields(data);
 
   const rule = new SalaryRule(data);
-  await rule.save();
+  try {
+    await rule.save();
+  } catch (dbErr) {
+    if (dbErr.code === 11000) {
+      const err = new Error("This rule code is already in use. Try a different code.");
+      err.statusCode = 409;
+      err.field = "code";
+      err.errors = { code: "This rule code is already in use. Try a different code." };
+      throw err;
+    }
+    throw dbErr;
+  }
   return rule;
 };
 
@@ -92,14 +111,35 @@ exports.update = async (id, data) => {
 
   if (data.code) {
     merged.code = data.code.toUpperCase();
+    const duplicate = await SalaryRule.findOne({
+      code: merged.code,
+      _id: { $ne: id },
+    });
+    if (duplicate) {
+      const err = new Error("This rule code is already in use. Try a different code.");
+      err.statusCode = 409;
+      err.field = "code";
+      err.errors = { code: "This rule code is already in use. Try a different code." };
+      throw err;
+    }
   }
 
-  const updated = await SalaryRule.findByIdAndUpdate(id, merged, {
-    new: true,
-    runValidators: true,
-  });
-
-  return updated;
+  try {
+    const updated = await SalaryRule.findByIdAndUpdate(id, merged, {
+      new: true,
+      runValidators: true,
+    });
+    return updated;
+  } catch (dbErr) {
+    if (dbErr.code === 11000) {
+      const err = new Error("This rule code is already in use. Try a different code.");
+      err.statusCode = 409;
+      err.field = "code";
+      err.errors = { code: "This rule code is already in use. Try a different code." };
+      throw err;
+    }
+    throw dbErr;
+  }
 };
 
 exports.delete = async (id) => {

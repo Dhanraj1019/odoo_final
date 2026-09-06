@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   CalendarDays,
@@ -12,6 +12,8 @@ import {
   User,
   X,
   FileText,
+  ArrowLeft,
+  Search,
 } from "lucide-react";
 import PageContainer from "../../../components/layout/PageContainer";
 import LeaveBalanceCard from "../components/LeaveBalanceCard";
@@ -45,6 +47,7 @@ export default function TimeOffRequestsPage() {
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Filters
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedType, setSelectedType] = useState("");
 
@@ -185,6 +188,26 @@ export default function TimeOffRequestsPage() {
     return { total, pending, approved, refused };
   }, [requests]);
 
+  // Client-side search filtering across loaded requests
+  const displayedRequests = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+    const q = searchQuery.toLowerCase().trim();
+    return requests.filter((item) => {
+      const empName = item.employee?.fullName?.toLowerCase() || "";
+      const empCode = item.employee?.employeeCode?.toLowerCase() || "";
+      const typeName = item.timeOffType?.name?.toLowerCase() || "";
+      const reason = item.reason?.toLowerCase() || "";
+      const status = item.status?.toLowerCase() || "";
+      return (
+        empName.includes(q) ||
+        empCode.includes(q) ||
+        typeName.includes(q) ||
+        reason.includes(q) ||
+        status.includes(q)
+      );
+    });
+  }, [requests, searchQuery]);
+
   const clearEmployeeFilter = () => {
     searchParams.delete("employee");
     setSearchParams(searchParams);
@@ -192,11 +215,11 @@ export default function TimeOffRequestsPage() {
 
   return (
     <PageContainer
-      title={isEmployeeOnly ? "My Time Off Requests" : "Time Off Management"}
+      title={isEmployeeOnly ? "My Time Off Requests" : "Time Off Requests"}
       description={
         isEmployeeOnly
           ? "Submit leave applications, track balance deductions, and monitor approval status"
-          : "Review workforce time off submissions, approve leaves, and oversee employee balances"
+          : "Manage employee leave requests and approval workflows."
       }
       breadcrumbs={[{ label: "Time Off", path: "/time-off/requests" }, { label: "Requests" }]}
       actions={
@@ -205,7 +228,7 @@ export default function TimeOffRequestsPage() {
             type="button"
             onClick={() => setRefreshCounter((c) => c + 1)}
             title="Refresh requests"
-            className="p-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-colors shadow-xs"
+            className="p-2 bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-colors shadow-2xs"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
@@ -236,33 +259,51 @@ export default function TimeOffRequestsPage() {
           />
         )}
 
-        {/* Filter Alert Banner when deep-linked */}
+        {/* Filter Context Banner when deep-linked */}
         {!isEmployeeOnly && filteredEmployee && (
-          <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2.5 text-indigo-900 font-semibold">
-              <User className="w-4 h-4 text-indigo-600" />
-              <span>
-                Filtering time off requests for:{" "}
-                <span className="font-bold underline">{filteredEmployee.fullName}</span> (
-                {filteredEmployee.employeeCode})
-              </span>
+          <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+            <div className="flex items-center gap-3 text-indigo-950 font-medium">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs font-bold">
+                <User className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider block">
+                  Scoped View
+                </span>
+                <span className="font-bold text-slate-900">
+                  Showing Time Off Requests for:{" "}
+                  <span className="text-indigo-700 font-black underline">
+                    {filteredEmployee.fullName} • {filteredEmployee.employeeCode}
+                  </span>
+                </span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={clearEmployeeFilter}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-indigo-700 hover:bg-indigo-100 font-bold text-xs shadow-2xs transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-              Show All Employees
-            </button>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to={`/employees/${filteredEmployee._id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs shadow-2xs transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Profile
+              </Link>
+              <button
+                type="button"
+                onClick={clearEmployeeFilter}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Show All Requests
+              </button>
+            </div>
           </div>
         )}
 
         {/* KPI Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between hover:border-slate-300 transition-all">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Total Requests
               </p>
               <p className="text-2xl font-black text-slate-900 tracking-tight">{metrics.total}</p>
@@ -272,9 +313,9 @@ export default function TimeOffRequestsPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between hover:border-slate-300 transition-all">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Pending Approval
               </p>
               <p className="text-2xl font-black text-amber-600 tracking-tight">{metrics.pending}</p>
@@ -284,9 +325,9 @@ export default function TimeOffRequestsPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between hover:border-slate-300 transition-all">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Approved
               </p>
               <p className="text-2xl font-black text-emerald-600 tracking-tight">
@@ -298,9 +339,9 @@ export default function TimeOffRequestsPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between hover:border-slate-300 transition-all">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Refused
               </p>
               <p className="text-2xl font-black text-rose-600 tracking-tight">{metrics.refused}</p>
@@ -311,9 +352,23 @@ export default function TimeOffRequestsPage() {
           </div>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+        {/* Search & Filter Toolbar */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            {/* Realtime Search Box */}
+            <div className="relative min-w-[220px] flex-1 sm:flex-initial">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search requests or employee..."
+                className="w-full pl-9 pr-3.5 py-1.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+            </div>
+
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
               <Filter className="w-4 h-4 text-slate-400" />
               <span>Filters:</span>
@@ -323,7 +378,7 @@ export default function TimeOffRequestsPage() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="">All Statuses</option>
               <option value="Submitted">Submitted (Pending)</option>
@@ -335,7 +390,7 @@ export default function TimeOffRequestsPage() {
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
               <option value="">All Leave Types</option>
               {types.map((t) => (
@@ -344,26 +399,27 @@ export default function TimeOffRequestsPage() {
                 </option>
               ))}
             </select>
-
-            {(selectedStatus || selectedType || employeeFilterId) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedStatus("");
-                  setSelectedType("");
-                  if (employeeFilterId) clearEmployeeFilter();
-                }}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
-              >
-                Reset Filters
-              </button>
-            )}
           </div>
+
+          {(searchQuery || selectedStatus || selectedType || employeeFilterId) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedStatus("");
+                setSelectedType("");
+                if (employeeFilterId) clearEmployeeFilter();
+              }}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-bold px-3 py-1.5 rounded-xl hover:bg-indigo-50 transition-colors"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
 
         {/* Data Table */}
         <TimeOffRequestListTable
-          requests={requests}
+          requests={displayedRequests}
           isLoading={isLoading}
           showEmployeeColumn={!isEmployeeOnly}
           onApprove={handleApprove}

@@ -8,7 +8,18 @@ const pdfService = require("../services/pdf.service");
  */
 exports.listPayslips = asyncHandler(async (req, res) => {
   const payslips = await payrollComputeService.listPayslips(req.query, req.user);
-  return success(res, { payslips });
+  const totalPayslips = payslips.length;
+  const paidPayslips = payslips.filter((p) => p.status === "Paid").length;
+  const totalNetAmount = payslips.reduce((sum, p) => sum + (Number(p.netSalary) || 0), 0);
+
+  return success(res, {
+    payslips,
+    summary: {
+      totalPayslips,
+      paidPayslips,
+      totalNetAmount,
+    },
+  });
 });
 
 /**

@@ -126,6 +126,55 @@ class EmployeesAPI {
       return { ok: false, success: false, message: error.message || "Failed to terminate employee" };
     }
   }
+
+  /**
+   * Lookup an employee by email for User Provisioning: GET /api/employees/lookup?email=
+   * @param {string} email - Email address to search
+   * @param {AbortSignal} [signal] - Optional AbortController signal
+   */
+  async lookupEmployeeByEmail(email, signal = null) {
+    try {
+      const normalized = email ? email.trim() : "";
+      const url = `${BASE_URL}/lookup?email=${encodeURIComponent(normalized)}`;
+
+      const fetchOptions = {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      };
+      if (signal) {
+        fetchOptions.signal = signal;
+      }
+
+      const response = await fetch(url, fetchOptions);
+      const result = await response.json();
+      return { ok: response.ok, ...result };
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return { ok: false, aborted: true, message: "Request cancelled" };
+      }
+      console.error("lookupEmployeeByEmail error:", error);
+      return { ok: false, success: false, message: error.message || "Failed to search employee" };
+    }
+  }
+
+  /**
+   * List all departments (delegates to references API)
+   */
+  async listDepartments() {
+    try {
+      const response = await fetch(`${conf.BACKEND_URL}/api/departments`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const result = await response.json();
+      return { ok: response.ok, ...result };
+    } catch (error) {
+      console.error("listDepartments error:", error);
+      return { ok: false, success: false, data: { departments: [] }, message: error.message };
+    }
+  }
 }
 
 const employeesApi = new EmployeesAPI();

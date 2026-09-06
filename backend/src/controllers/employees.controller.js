@@ -47,17 +47,29 @@ exports.getEmployeeById = asyncHandler(async (req, res) => {
  * POST /api/employees
  */
 exports.createEmployee = asyncHandler(async (req, res) => {
-  const { fullName, employeeCode, email } = req.body;
-  if (!fullName || !employeeCode || !email) {
+  const { fullName, email } = req.body;
+  if (!fullName || !email || !email.trim()) {
     return error(
       res,
-      "Validation Error: fullName, employeeCode, and email are required",
+      "Validation Error: fullName and email are required",
       400
     );
   }
 
-  const employee = await employeeService.create(req.body);
-  return success(res, { employee }, 201, "Employee created successfully");
+  try {
+    const employee = await employeeService.create(req.body);
+    return success(res, { employee }, 201, "Employee created successfully");
+  } catch (err) {
+    if (err.code === "EMPLOYEE_EMAIL_EXISTS" || err.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        code: err.code || "EMPLOYEE_EMAIL_EXISTS",
+        message: err.message || "An employee already exists with this email.",
+        employee: err.employee || null,
+      });
+    }
+    throw err;
+  }
 });
 
 /**
@@ -70,9 +82,23 @@ exports.updateEmployee = asyncHandler(async (req, res) => {
 
 /**
  * DELETE /api/employees/:id
- * Soft deletes employee (sets status = 'Terminated')
+ * Safely removes employee record after unlinking User accounts and verifying no operational conflicts
  */
 exports.deleteEmployee = asyncHandler(async (req, res) => {
-  const employee = await employeeService.delete(req.params.id);
-  return success(res, { employee }, 200, "Employee terminated successfully");
+  const result = await employeeService.delete(req.params.id);
+  return success(res, result, 200, "Employee deleted successfully.");
+});
+
+/**
+ * GET /api/employees/lookup?email=
+ * Accessible to Admin and HR roles for User Provisioning and Email Search
+ */
+exports.lookupEmployeeByEmail = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!email || !email.trim()) {
+    return error(res, "Validation Error: email query parameter is required", 400);
+  }
+
+  const result = await employeeService.lookupByEmail(email);
+  return success(res, result, 200, "Employee lookup completed successfully");
 });

@@ -134,6 +134,37 @@ class UsersAPI {
   async reactivateUser(id) {
     return this.updateUser(id, { isActive: true });
   }
+
+  /**
+   * Lookup user by email for Smart Employee Linking: GET /api/users/lookup?email=
+   * @param {string} email - Email address to search
+   * @param {AbortSignal} [signal] - Optional AbortController signal for request cancellation
+   */
+  async lookupUserByEmail(email, signal = null) {
+    try {
+      const normalized = email ? email.trim() : "";
+      const url = `${BASE_URL}/lookup?email=${encodeURIComponent(normalized)}`;
+
+      const fetchOptions = {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      };
+      if (signal) {
+        fetchOptions.signal = signal;
+      }
+
+      const response = await fetch(url, fetchOptions);
+      const result = await response.json();
+      return { ok: response.ok, ...result };
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return { ok: false, aborted: true, message: "Request cancelled" };
+      }
+      console.error("lookupUserByEmail error:", error);
+      return { ok: false, success: false, message: error.message || "Failed to search user" };
+    }
+  }
 }
 
 const usersApi = new UsersAPI();

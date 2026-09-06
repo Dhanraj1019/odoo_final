@@ -10,6 +10,8 @@ import {
   Loader2,
   Sparkles,
   Timer,
+  Activity,
+  ArrowRight,
 } from "lucide-react";
 import attendanceApi from "../../../api/attendance";
 import AttendanceStatusBadge from "./AttendanceStatusBadge";
@@ -144,26 +146,28 @@ export default function AttendanceWidget({ onAttendanceUpdated = null }) {
   });
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-      {/* Background Subtle Accents */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs relative overflow-hidden transition-all">
+      {/* Background Accent Decorative Subtle Blob */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-indigo-50/70 via-slate-50/40 to-transparent rounded-full blur-2xl pointer-events-none" />
 
       <div className="relative z-10 space-y-6">
         {/* Top Header Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Smart Attendance Console</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight">{formattedDateStr}</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              {formattedDateStr}
+            </h2>
           </div>
 
-          {/* Digital Clock Display */}
-          <div className="bg-slate-800/80 border border-slate-700/80 px-4 py-2 rounded-2xl flex items-center gap-3 backdrop-blur-sm shadow-inner self-start sm:self-center">
-            <Clock className="w-5 h-5 text-indigo-400 animate-pulse" />
-            <span className="font-mono text-xl sm:text-2xl font-bold tracking-widest text-indigo-100">
+          {/* Digital Live Clock Display */}
+          <div className="bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl flex items-center gap-3 shadow-2xs self-start sm:self-center">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <Clock className="w-4 h-4 text-indigo-600" />
+            <span className="font-mono text-lg sm:text-xl font-bold tracking-wider text-slate-900">
               {formattedTimeStr}
             </span>
           </div>
@@ -171,68 +175,81 @@ export default function AttendanceWidget({ onAttendanceUpdated = null }) {
 
         {/* Action & Status Center */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-          {/* Main Action Button Slot */}
+          {/* Main Action Slot */}
           <div className="lg:col-span-1 flex flex-col items-stretch justify-center">
             {isLoading ? (
-              <div className="h-24 bg-slate-800/50 rounded-2xl flex items-center justify-center gap-2 text-slate-400">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-                <span className="text-xs font-semibold">Loading status...</span>
+              <div className="h-24 bg-slate-50 rounded-xl flex items-center justify-center gap-2 text-slate-400 border border-slate-200/60">
+                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                <span className="text-xs font-semibold">Loading attendance status...</span>
               </div>
             ) : !todayRecord?.checkIn ? (
-              <button
-                type="button"
-                onClick={handleCheckIn}
-                disabled={isActionLoading}
-                className="w-full group relative overflow-hidden px-6 py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-base shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all flex items-center justify-center gap-3 active:scale-98"
-              >
-                {isActionLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <LogIn className="w-6 h-6 stroke-[2.5] group-hover:scale-110 transition-transform" />
-                    <span>CHECK IN FOR SHIFT</span>
-                  </>
-                )}
-              </button>
-            ) : isCheckedIn ? (
-              <button
-                type="button"
-                onClick={handleCheckOut}
-                disabled={isActionLoading}
-                className="w-full group relative overflow-hidden px-6 py-5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white font-black text-base shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 transition-all flex items-center justify-center gap-3 active:scale-98"
-              >
-                {isActionLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <LogOut className="w-6 h-6 stroke-[2.5] group-hover:scale-110 transition-transform" />
-                    <span>CHECK OUT NOW</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <div className="w-full p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center gap-3 text-slate-300 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>Today's Shift Completed</span>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleCheckIn}
+                  disabled={isActionLoading}
+                  className="w-full group px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2.5 active:scale-98 disabled:opacity-50"
+                >
+                  {isActionLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <LogIn className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      <span>Check In For Shift</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[11px] text-center text-slate-400 font-medium">
+                  Ready to start your workday? Tap Check In above.
+                </p>
               </div>
-            )}
+            ) : isCheckedIn ? (
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={handleCheckOut}
+                  disabled={isActionLoading}
+                  className="w-full group px-6 py-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2.5 active:scale-98 disabled:opacity-50"
+                >
+                  {isActionLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      <span>Check Out Now</span>
+                    </>
+                  )}
+                </button>
 
-            {/* Shift In-Progress Timer */}
-            {isCheckedIn && elapsedText && (
-              <div className="mt-2.5 flex items-center justify-center gap-2 text-xs font-mono text-emerald-400">
-                <Timer className="w-3.5 h-3.5 animate-spin" />
-                <span>Shift Duration: {elapsedText}</span>
+                {/* Shift In-Progress Timer */}
+                {elapsedText && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <Timer className="w-4 h-4 text-emerald-600" />
+                    <span>Active Shift Duration: <span className="font-mono font-black">{elapsedText}</span></span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full p-4 rounded-xl bg-emerald-50 border border-emerald-200/80 flex flex-col items-center justify-center gap-1.5 text-emerald-800">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>Today's Shift Complete</span>
+                </div>
+                <p className="text-[11px] text-emerald-600 font-medium">
+                  Total worked: {todayRecord.workedHours || 0} hours
+                </p>
               </div>
             )}
           </div>
 
-          {/* Today's Logged Metrics */}
+          {/* Today's Metrics Breakdown */}
           <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-800/60 border border-slate-700/60 p-3.5 rounded-2xl space-y-1">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-xl space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Check-In
               </p>
-              <p className="font-mono text-sm font-bold text-slate-100">
+              <p className="font-mono text-sm font-bold text-slate-800">
                 {todayRecord?.checkIn
                   ? new Date(todayRecord.checkIn).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -242,11 +259,11 @@ export default function AttendanceWidget({ onAttendanceUpdated = null }) {
               </p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 p-3.5 rounded-2xl space-y-1">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-xl space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Check-Out
               </p>
-              <p className="font-mono text-sm font-bold text-slate-100">
+              <p className="font-mono text-sm font-bold text-slate-800">
                 {todayRecord?.checkOut
                   ? new Date(todayRecord.checkOut).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -258,24 +275,24 @@ export default function AttendanceWidget({ onAttendanceUpdated = null }) {
               </p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 p-3.5 rounded-2xl space-y-1">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-xl space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Worked Hours
               </p>
-              <p className="font-mono text-sm font-bold text-indigo-300">
+              <p className="font-mono text-sm font-bold text-indigo-600">
                 {todayRecord?.workedHours ? `${todayRecord.workedHours} hrs` : "0.00 hrs"}
               </p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 p-3.5 rounded-2xl space-y-1">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-xl space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Status
               </p>
               <div>
                 {todayRecord?.status ? (
                   <AttendanceStatusBadge status={todayRecord.status} />
                 ) : (
-                  <span className="text-xs text-slate-500 font-medium">Pending</span>
+                  <span className="text-xs text-slate-400 font-medium">Pending</span>
                 )}
               </div>
             </div>

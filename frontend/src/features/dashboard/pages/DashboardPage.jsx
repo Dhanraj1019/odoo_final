@@ -97,8 +97,9 @@ export default function DashboardPage() {
       breadcrumbs={[{ label: "Overview", path: "/dashboard" }, { label: "Executive Dashboard" }]}
       actions={
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
-            Scope: <span className="text-indigo-600 uppercase">{scope}</span>
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Scope: <span className="uppercase text-indigo-900">{scope}</span></span>
           </span>
         </div>
       }
@@ -149,11 +150,11 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* 3. Operational Risk & Module Overviews */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <PayrollAlertsPanel alerts={alerts} />
+            {/* 3. Operational Intelligence & Module Overviews */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <AttendanceOverviewPanel attendance={attendanceOverview} />
               <TimeOffOverviewPanel timeOff={timeOffOverview} />
+              <PayrollAlertsPanel alerts={alerts} />
             </div>
 
             {/* 4. Departmental Breakdown Table */}

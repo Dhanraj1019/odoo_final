@@ -71,7 +71,21 @@ class TimeOffAPI {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      return { ok: response.ok, ...result };
+      const timeOffType =
+        result.data?.timeOffType ||
+        result.data?.type ||
+        result.timeOffType ||
+        result.type;
+
+      return {
+        ok: response.ok,
+        ...result,
+        data: {
+          ...result.data,
+          timeOffType,
+          type: timeOffType,
+        },
+      };
     } catch (error) {
       console.error("createType error:", error);
       return { ok: false, success: false, message: error.message || "Failed to create leave type" };
@@ -90,7 +104,21 @@ class TimeOffAPI {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      return { ok: response.ok, ...result };
+      const timeOffType =
+        result.data?.timeOffType ||
+        result.data?.type ||
+        result.timeOffType ||
+        result.type;
+
+      return {
+        ok: response.ok,
+        ...result,
+        data: {
+          ...result.data,
+          timeOffType,
+          type: timeOffType,
+        },
+      };
     } catch (error) {
       console.error("updateType error:", error);
       return { ok: false, success: false, message: error.message || "Failed to update leave type" };

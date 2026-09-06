@@ -6,7 +6,19 @@ import { setCredentials, setAuthError } from "../authSlice";
 import { apiFetch } from "../../../lib/apiClient";
 import { addNotification } from "../../notifications/notificationSlice";
 import Spinner from "../../../components/common/Spinner";
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, UserCheck, Briefcase, Calculator, User } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  UserCheck,
+  Briefcase,
+  Calculator,
+  User,
+  AlertCircle,
+  ArrowRight,
+} from "lucide-react";
 
 const DEMO_ACCOUNTS = [
   {
@@ -15,7 +27,7 @@ const DEMO_ACCOUNTS = [
     email: "admin@peoplepay360.local",
     password: "AdminPassword2026!",
     icon: ShieldCheck,
-    color: "border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700",
+    color: "border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-700",
   },
   {
     role: "HR Manager",
@@ -23,7 +35,7 @@ const DEMO_ACCOUNTS = [
     email: "hrmanager@peoplepay360.local",
     password: "HRManager2026!",
     icon: Briefcase,
-    color: "border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700",
+    color: "border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-700",
   },
   {
     role: "HR Payroll Manager",
@@ -31,7 +43,7 @@ const DEMO_ACCOUNTS = [
     email: "payrollmanager@peoplepay360.local",
     password: "PayrollMgr2026!",
     icon: Calculator,
-    color: "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700",
+    color: "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700",
   },
   {
     role: "HR Payroll User",
@@ -39,15 +51,15 @@ const DEMO_ACCOUNTS = [
     email: "payrolluser@peoplepay360.local",
     password: "PayrollUser2026!",
     icon: UserCheck,
-    color: "border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-700",
+    color: "border-teal-200 bg-teal-50/70 hover:bg-teal-100 text-teal-700",
   },
   {
     role: "Employee",
     title: "Employee",
-    email: "employee@peoplepay360.local",
-    password: "Employee2026!",
+    email: "nishu@gmailc.om",
+    password: "11111111",
     icon: User,
-    color: "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700",
+    color: "border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700",
   },
 ];
 
@@ -123,11 +135,11 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {serverError && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium flex items-center gap-2 animate-in fade-in">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
-          {serverError}
+        <div className="p-3.5 rounded-xl bg-rose-50/90 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2.5 animate-in fade-in">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{serverError}</span>
         </div>
       )}
 
@@ -149,11 +161,10 @@ export default function LoginForm() {
                   message: "Invalid email address format",
                 },
               })}
-              className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${
-                errors.email
-                  ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
-                  : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-              }`}
+              className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${errors.email
+                ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
+                : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                }`}
             />
           </div>
           {errors.email && (
@@ -174,11 +185,10 @@ export default function LoginForm() {
               {...register("password", {
                 required: "Password is required",
               })}
-              className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${
-                errors.password
-                  ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
-                  : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-              }`}
+              className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${errors.password
+                ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
+                : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                }`}
             />
             <button
               type="button"

@@ -206,9 +206,9 @@ export default function WorkingSchedulesPage() {
             type="button"
             onClick={loadSchedules}
             title="Refresh list"
-            className="p-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-colors shadow-xs"
+            className="p-2.5 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-indigo-600" : ""}`} />
           </button>
 
           {canWrite && (
@@ -218,7 +218,7 @@ export default function WorkingSchedulesPage() {
                 setEditingSchedule(null);
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>New Schedule</span>
@@ -230,41 +230,41 @@ export default function WorkingSchedulesPage() {
       <div className="space-y-5">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between transition-all hover:border-slate-300">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Total Schedules
               </p>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">{metrics.total}</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{metrics.total}</p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Calendar className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+              <Calendar className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between transition-all hover:border-slate-300">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Active Templates
               </p>
-              <p className="text-2xl font-black text-emerald-600 tracking-tight">{metrics.active}</p>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">{metrics.active}</p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between transition-all hover:border-slate-300">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Avg Weekly Hours
               </p>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">
-                {metrics.avgHours} <span className="text-xs font-normal text-slate-500">hrs</span>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {metrics.avgHours} <span className="text-xs font-normal text-slate-500">hrs/wk</span>
               </p>
             </div>
-            <div className="w-11 h-11 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600">
-              <Clock className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 shadow-2xs">
+              <Clock className="w-6 h-6" />
             </div>
           </div>
         </div>

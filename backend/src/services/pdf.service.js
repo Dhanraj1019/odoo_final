@@ -148,14 +148,18 @@ exports.streamPayslipPdf = async (payslipId, res, user = null) => {
       );
 
     if (!isPayrollOrAdmin) {
-      const empId = payslip.employee ? payslip.employee._id || payslip.employee : null;
-      if (!empId || empId.toString() !== (user.employee ? user.employee.toString() : "")) {
-        const err = new Error("Forbidden");
-        err.statusCode = 403;
-        throw err;
+      let userEmployeeId = user.employee ? (user.employee._id || user.employee).toString() : null;
+      if (!userEmployeeId && user.email) {
+        const Employee = require("../models/Employee");
+        const emp = await Employee.findOne({ email: user.email.toLowerCase().trim() }).select("_id");
+        userEmployeeId = emp ? emp._id.toString() : null;
       }
-      if (payslip.status !== "Paid") {
-        const err = new Error("Payslip is not yet published");
+      const payslipEmployeeId = payslip.employee
+        ? (payslip.employee._id || payslip.employee).toString()
+        : null;
+
+      if (!userEmployeeId || !payslipEmployeeId || payslipEmployeeId !== userEmployeeId) {
+        const err = new Error("Forbidden: You can only download your own payslips");
         err.statusCode = 403;
         throw err;
       }

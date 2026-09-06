@@ -59,6 +59,7 @@ export default function SalaryRuleFormModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -85,6 +86,7 @@ export default function SalaryRuleFormModal({
       setFormulaExpression("");
     }
     setErrorMessage("");
+    setFieldErrors({});
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -92,6 +94,9 @@ export default function SalaryRuleFormModal({
   const handleCodeChange = (e) => {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "");
     setCode(val);
+    if (fieldErrors.code) {
+      setFieldErrors((prev) => ({ ...prev, code: null }));
+    }
   };
 
   const insertVariable = (varName) => {
@@ -101,19 +106,36 @@ export default function SalaryRuleFormModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
+    setFieldErrors({});
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedCode = code.trim().toUpperCase();
+
+    if (!trimmedName) {
       setErrorMessage("Salary rule name is required");
       return;
     }
-    if (!code.trim()) {
-      setErrorMessage("Rule code is required (e.g. BASIC, HRA, PF)");
+    if (!trimmedCode) {
+      setFieldErrors({ code: "Rule code is required (e.g. BASIC, HRA, PF)" });
+      return;
+    }
+
+    // Client-side duplicate check if existingRules provided
+    const isDuplicateLocal = existingRules.some(
+      (r) =>
+        r.code?.toUpperCase() === trimmedCode &&
+        String(r._id) !== String(initialData?._id)
+    );
+    if (isDuplicateLocal) {
+      setFieldErrors({
+        code: "This rule code is already in use. Try a different code.",
+      });
       return;
     }
 
     const payload = {
-      name: name.trim(),
-      code: code.trim().toUpperCase(),
+      name: trimmedName,
+      code: trimmedCode,
       category,
       sequence: Number(sequence) || 10,
       computationMethod,
@@ -166,10 +188,38 @@ export default function SalaryRuleFormModal({
         onSuccess?.();
         onClose();
       } else {
-        setErrorMessage(res.message || "Failed to save salary rule");
+        const msg = res.message || "Failed to save salary rule";
+        if (
+          res.field === "code" ||
+          res.errors?.code ||
+          (msg &&
+            (msg.toLowerCase().includes("rule code") ||
+              msg.toLowerCase().includes("duplicate") ||
+              msg.includes("E11000")))
+        ) {
+          setFieldErrors({
+            code: "This rule code is already in use. Try a different code.",
+          });
+          setErrorMessage("");
+        } else {
+          setErrorMessage(msg);
+        }
       }
     } catch (err) {
-      setErrorMessage(err.message || "An unexpected error occurred");
+      const msg = err.message || "An unexpected error occurred";
+      if (
+        msg &&
+        (msg.toLowerCase().includes("rule code") ||
+          msg.toLowerCase().includes("duplicate") ||
+          msg.includes("E11000"))
+      ) {
+        setFieldErrors({
+          code: "This rule code is already in use. Try a different code.",
+        });
+        setErrorMessage("");
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -237,8 +287,18 @@ export default function SalaryRuleFormModal({
                 value={code}
                 onChange={handleCodeChange}
                 placeholder="e.g. HRA, BASIC, PF"
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
+                className={`w-full px-3.5 py-2 border rounded-xl text-sm font-mono uppercase focus:outline-none focus:ring-2 transition-all font-bold ${
+                  fieldErrors.code
+                    ? "border-rose-400 focus:ring-rose-400/20 bg-rose-50/30 text-rose-900"
+                    : "bg-slate-50 border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900"
+                }`}
               />
+              {fieldErrors.code && (
+                <p className="text-xs text-rose-600 flex items-center gap-1.5 mt-1 font-medium animate-in fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.code}</span>
+                </p>
+              )}
             </div>
           </div>
 

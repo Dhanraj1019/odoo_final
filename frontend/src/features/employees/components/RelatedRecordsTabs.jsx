@@ -50,35 +50,35 @@ export default function RelatedRecordsTabs({ employee }) {
     switch (color) {
       case "indigo":
         return {
-          bg: "bg-indigo-50/70",
+          bg: "bg-indigo-50/50",
           border: "border-indigo-100",
           iconBg: "bg-indigo-600 text-white",
-          hoverBorder: "hover:border-indigo-300",
+          hoverBorder: "hover:border-indigo-400 hover:shadow-indigo-500/10",
         };
       case "emerald":
         return {
-          bg: "bg-emerald-50/70",
+          bg: "bg-emerald-50/50",
           border: "border-emerald-100",
           iconBg: "bg-emerald-600 text-white",
-          hoverBorder: "hover:border-emerald-300",
+          hoverBorder: "hover:border-emerald-400 hover:shadow-emerald-500/10",
         };
       case "amber":
         return {
-          bg: "bg-amber-50/70",
+          bg: "bg-amber-50/50",
           border: "border-amber-100",
           iconBg: "bg-amber-600 text-white",
-          hoverBorder: "hover:border-amber-300",
+          hoverBorder: "hover:border-amber-400 hover:shadow-amber-500/10",
         };
       case "violet":
         return {
-          bg: "bg-violet-50/70",
+          bg: "bg-violet-50/50",
           border: "border-violet-100",
           iconBg: "bg-violet-600 text-white",
-          hoverBorder: "hover:border-violet-300",
+          hoverBorder: "hover:border-violet-400 hover:shadow-violet-500/10",
         };
       default:
         return {
-          bg: "bg-slate-50",
+          bg: "bg-slate-50/50",
           border: "border-slate-200",
           iconBg: "bg-slate-700 text-white",
           hoverBorder: "hover:border-slate-400",
@@ -92,7 +92,7 @@ export default function RelatedRecordsTabs({ employee }) {
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">
           Related Operational Modules
         </h3>
-        <span className="text-xs text-slate-400">Direct filtered links</span>
+        <span className="text-xs text-slate-400 font-medium">Direct filtered records</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -104,22 +104,24 @@ export default function RelatedRecordsTabs({ employee }) {
             <Link
               key={item.title}
               to={item.path}
-              className={`p-4 rounded-2xl border ${colors.bg} ${colors.border} ${colors.hoverBorder} transition-all duration-150 shadow-xs hover:shadow-md flex flex-col justify-between group bg-white`}
+              className={`p-4 rounded-2xl border ${colors.bg} ${colors.border} ${colors.hoverBorder} transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between group bg-white hover:-translate-y-0.5`}
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs ${colors.iconBg}`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs ${colors.iconBg} transition-transform group-hover:scale-105`}
                 >
                   <Icon className="w-5 h-5" />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:border-indigo-200 transition-all">
+                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </div>
               </div>
 
               <div>
                 <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                   {item.title}
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">{item.description}</p>
+                <p className="text-xs text-slate-500 mt-0.5 font-normal leading-relaxed">{item.description}</p>
               </div>
             </Link>
           );
@@ -128,3 +130,4 @@ export default function RelatedRecordsTabs({ employee }) {
     </div>
   );
 }
+

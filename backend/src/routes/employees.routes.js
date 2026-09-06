@@ -15,6 +15,7 @@ const HR_ROLES = [
 router.get("/me", requireAuth, employeesController.getMyEmployeeProfile);
 
 // 2. HR & Admin managed employee endpoints
+router.get("/lookup", requireAuth, requireRole(HR_ROLES), employeesController.lookupEmployeeByEmail);
 router.get("/", requireAuth, requireRole(HR_ROLES), employeesController.listEmployees);
 router.get("/:id", requireAuth, requireRole(HR_ROLES), employeesController.getEmployeeById);
 router.post("/", requireAuth, requireRole(HR_ROLES), employeesController.createEmployee);

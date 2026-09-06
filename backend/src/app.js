@@ -80,6 +80,7 @@ app.use("/api/salary-rules", salaryRulesRoutes);
 app.use("/api/salary-structures", salaryStructuresRoutes);
 app.use("/api/payruns", payrunsRoutes);
 app.use("/api/payslips", payslipsRoutes);
+app.use("/api/employee/payslips", payslipsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // 9. 404 handler

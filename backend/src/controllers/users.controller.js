@@ -24,15 +24,23 @@ exports.getUser = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/users
- * Body: { fullName, email, password, roles, employeeId? }
+ * Body: { employeeId?, fullName?, email?, password, roles }
  */
 exports.createUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password, roles } = req.body;
+  const { employeeId, fullName, email, password, roles } = req.body;
 
-  if (!fullName || !email || !password || !roles) {
+  if (!password || !roles) {
     return error(
       res,
-      "Validation Error: fullName, email, password, and roles are required",
+      "Validation Error: password and roles are required",
+      400
+    );
+  }
+
+  if (!employeeId && (!fullName || !email)) {
+    return error(
+      res,
+      "Validation Error: either employee selection or fullName and email are required",
       400
     );
   }
@@ -75,4 +83,18 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 exports.deleteUser = asyncHandler(async (req, res) => {
   const user = await userService.deactivateUser(req.params.id);
   return success(res, { user }, 200, "User deactivated successfully");
+});
+
+/**
+ * GET /api/users/lookup?email=
+ * Accessible to Admin and HR Manager for Employee Smart Linking
+ */
+exports.lookupUserByEmail = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!email || !email.trim()) {
+    return error(res, "Validation Error: email query parameter is required", 400);
+  }
+
+  const result = await userService.lookupByEmail(email);
+  return success(res, result, 200, "User lookup completed successfully");
 });

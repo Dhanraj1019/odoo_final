@@ -10,6 +10,7 @@ import {
   Calendar,
   DollarSign,
   ShieldCheck,
+  Award,
 } from "lucide-react";
 import timeOffApi from "../../../api/timeOff";
 import { addNotification } from "../../notifications/notificationSlice";
@@ -94,14 +95,20 @@ export default function TimeOffTypeFormModal({
         res = await timeOffApi.createType(payload);
       }
 
-      if (res.ok && (res.success || res.data?.type || res.type)) {
-        const saved = res.data?.type || res.type;
+      if (res.ok && (res.success || res.data?.timeOffType || res.data?.type || res.timeOffType || res.type)) {
+        const saved =
+          res.data?.timeOffType ||
+          res.data?.type ||
+          res.timeOffType ||
+          res.type ||
+          { name: payload.name };
+        const savedName = saved?.name || payload.name;
         dispatch(
           addNotification({
             type: "success",
             message: isEditing
-              ? `Time off type "${saved.name}" updated successfully.`
-              : `Time off type "${saved.name}" created successfully.`,
+              ? `Time off type "${savedName}" updated successfully.`
+              : `Time off type "${savedName}" created successfully.`,
           })
         );
         if (onSuccess) onSuccess(saved);
@@ -121,16 +128,16 @@ export default function TimeOffTypeFormModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {isEditing ? `Edit Type — ${initialData?.name}` : "New Time Off Type"}
+              <h2 className="text-base font-bold text-slate-900">
+                {isEditing ? `Edit Type — ${initialData?.name}` : "Create Time Off Type"}
               </h2>
               <p className="text-xs text-slate-500">
                 Configure leave category parameters and approval requirements
@@ -155,106 +162,125 @@ export default function TimeOffTypeFormModal({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="p-6 space-y-4">
-            {/* Type Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Leave Type Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register("name", { required: "Name is required" })}
-                placeholder="e.g. Paid Time Off (PTO), Sick Leave, Maternity Leave"
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-              />
-              {errors.name && <p className="text-xs text-rose-600">{errors.name.message}</p>}
-            </div>
+          <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            {/* Section 1: Basic Information */}
+            <div className="space-y-3.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-1 border-b border-slate-100">
+                Basic Information
+              </h3>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Unit */}
+              {/* Type Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Measurement Unit
+                <label className="text-xs font-bold text-slate-700">
+                  Leave Type Name <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  {...register("unit")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                >
-                  <option value="Days">Days</option>
-                  <option value="Hours">Hours</option>
-                </select>
+                <input
+                  type="text"
+                  {...register("name", { required: "Name is required" })}
+                  placeholder="e.g. Paid Time Off (PTO), Sick Leave, Maternity Leave"
+                  className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 transition-all ${
+                    errors.name
+                      ? "border-rose-400 focus:ring-rose-400/20 bg-rose-50/30"
+                      : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800"
+                  }`}
+                />
+                {errors.name && <p className="text-xs text-rose-600">{errors.name.message}</p>}
               </div>
 
-              {/* Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Status
-                </label>
-                <select
-                  {...register("status")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Archived">Archived</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Unit */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">
+                    Measurement Unit
+                  </label>
+                  <select
+                    {...register("unit")}
+                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  >
+                    <option value="Days">Days</option>
+                    <option value="Hours">Hours</option>
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">
+                    Status
+                  </label>
+                  <select
+                    {...register("status")}
+                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Policy Checkboxes */}
-            <div className="pt-3 border-t border-slate-100 space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  {...register("requiresAllocation")}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <div className="text-xs">
-                  <p className="font-bold text-slate-800">Requires Quota Allocation</p>
-                  <p className="text-slate-400">
-                    Employees must have an approved allocation balance before requesting
-                  </p>
-                </div>
-              </label>
+            {/* Section 2: Policy & Compensation Rules */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-1 border-b border-slate-100">
+                Policy & Compensation Rules
+              </h3>
 
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  {...register("requiresApproval")}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <div className="text-xs">
-                  <p className="font-bold text-slate-800">Requires Manager / HR Approval</p>
-                  <p className="text-slate-400">
-                    Requests stay in 'Submitted' status until formally approved
-                  </p>
-                </div>
-              </label>
+              <div className="space-y-2.5">
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 cursor-pointer select-none transition-colors">
+                  <input
+                    type="checkbox"
+                    {...register("requiresAllocation")}
+                    className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-900">Requires Quota Allocation</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Employees must have an approved allocation balance before requesting this leave type
+                    </p>
+                  </div>
+                </label>
 
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  {...register("isPaid")}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <div className="text-xs">
-                  <p className="font-bold text-slate-800">Paid Leave Category</p>
-                  <p className="text-slate-400">Employees receive standard salary compensation</p>
-                </div>
-              </label>
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 cursor-pointer select-none transition-colors">
+                  <input
+                    type="checkbox"
+                    {...register("requiresApproval")}
+                    className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-900">Requires Manager / HR Approval</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Requests stay in 'Submitted' status until formally reviewed and approved
+                    </p>
+                  </div>
+                </label>
 
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  {...register("affectsPayroll")}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                />
-                <div className="text-xs">
-                  <p className="font-bold text-slate-800">Affects Payroll Calculations</p>
-                  <p className="text-slate-400">
-                    Factored into monthly payslip worked days / deductions
-                  </p>
-                </div>
-              </label>
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 cursor-pointer select-none transition-colors">
+                  <input
+                    type="checkbox"
+                    {...register("isPaid")}
+                    className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-900">Paid Leave Category</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Employees receive standard salary compensation for approved days
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 cursor-pointer select-none transition-colors">
+                  <input
+                    type="checkbox"
+                    {...register("affectsPayroll")}
+                    className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <div className="text-xs">
+                    <p className="font-bold text-slate-900">Affects Payroll Calculations</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Factored into monthly payslip worked days and salary deductions
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -271,7 +297,7 @@ export default function TimeOffTypeFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -281,7 +307,7 @@ export default function TimeOffTypeFormModal({
               ) : (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isEditing ? "Save Changes" : "Create Type"}</span>
+                  <span>{isEditing ? "Save Changes" : "Create Time Off Type"}</span>
                 </>
               )}
             </button>
@@ -291,3 +317,4 @@ export default function TimeOffTypeFormModal({
     </div>
   );
 }
+

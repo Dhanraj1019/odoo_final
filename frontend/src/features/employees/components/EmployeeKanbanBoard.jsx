@@ -154,7 +154,7 @@ export default function EmployeeKanbanBoard({
             {/* Cards List */}
             <div className="space-y-3 flex-1">
               {col.items.length === 0 ? (
-                <div className="h-32 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400">
+                <div className="h-32 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-xs font-medium text-slate-400">
                   No employees in this group
                 </div>
               ) : (
@@ -162,13 +162,13 @@ export default function EmployeeKanbanBoard({
                   <div
                     key={emp._id}
                     onClick={() => navigate(`/employees/${emp._id}`)}
-                    className="bg-white border border-slate-200/90 hover:border-indigo-300 rounded-xl p-4 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col gap-3"
+                    className="bg-white border border-slate-200/90 hover:border-indigo-300 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer group flex flex-col gap-3 hover:-translate-y-0.5"
                   >
                     {/* Card Top */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${getAvatarColor(
+                          className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${getAvatarColor(
                             emp.fullName
                           )}`}
                         >
@@ -178,7 +178,7 @@ export default function EmployeeKanbanBoard({
                           <h4 className="font-bold text-slate-900 text-sm truncate group-hover:text-indigo-600 transition-colors">
                             {emp.fullName}
                           </h4>
-                          <span className="font-mono text-[11px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80">
                             {emp.employeeCode}
                           </span>
                         </div>
@@ -211,23 +211,16 @@ export default function EmployeeKanbanBoard({
                         <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate">{emp.email}</span>
                       </div>
-                      {emp.phone && (
-                        <div className="flex items-center gap-1.5 truncate">
-                          <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{emp.phone}</span>
-                        </div>
-                      )}
-                      {emp.manager?.fullName && (
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">Reports to: {emp.manager.fullName}</span>
+                      {emp.workingSchedule?.name && (
+                        <div className="text-[11px] text-slate-400 truncate">
+                          Schedule: <span className="text-slate-600 font-medium">{emp.workingSchedule.name}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Footer Tags */}
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
                         {emp.employeeType || "Full-Time"}
                       </span>
                       <EmployeeStatusBadge status={emp.status} />

@@ -513,6 +513,22 @@ exports.deletePayrun = async (id) => {
 };
 
 /**
+ * Helper to resolve Employee ID for a user (via user.employee reference or fallback email match)
+ */
+const resolveEmployeeIdForUser = async (user) => {
+  if (!user) return null;
+  if (user.employee) {
+    return user.employee._id ? user.employee._id.toString() : user.employee.toString();
+  }
+  if (user.email) {
+    const normalizedEmail = user.email.toLowerCase().trim();
+    const emp = await Employee.findOne({ email: normalizedEmail }).select("_id");
+    if (emp) return emp._id.toString();
+  }
+  return null;
+};
+
+/**
  * List Payslips with role scoping
  */
 exports.listPayslips = async (query = {}, user = null) => {
@@ -526,9 +542,12 @@ exports.listPayslips = async (query = {}, user = null) => {
     );
 
   if (!isPayrollOrAdmin) {
-    if (!user || !user.employee) return [];
-    filter.employee = user.employee;
-    filter.status = "Paid"; // Employees can only view Paid payslips
+    const employeeId = await resolveEmployeeIdForUser(user);
+    if (!employeeId) return [];
+    filter.employee = employeeId;
+    if (query.status) {
+      filter.status = query.status;
+    }
   } else {
     if (query.employee) filter.employee = query.employee;
     if (query.status) filter.status = query.status;
@@ -540,6 +559,7 @@ exports.listPayslips = async (query = {}, user = null) => {
     .populate("employee", "fullName employeeCode email department bankDetails")
     .populate("contract")
     .populate("salaryStructure")
+    .populate("payrun", "name periodStart periodEnd status")
     .sort({ periodStart: -1, createdAt: -1 });
 };
 
@@ -550,7 +570,8 @@ exports.getPayslipById = async (id, user = null) => {
   const payslip = await Payslip.findById(id)
     .populate("employee", "fullName employeeCode email department bankDetails")
     .populate("contract")
-    .populate("salaryStructure");
+    .populate("salaryStructure")
+    .populate("payrun", "name periodStart periodEnd status");
 
   if (!payslip) return null;
 
@@ -562,14 +583,13 @@ exports.getPayslipById = async (id, user = null) => {
       );
 
     if (!isPayrollOrAdmin) {
-      const empId = payslip.employee ? payslip.employee._id || payslip.employee : null;
-      if (!empId || empId.toString() !== (user.employee ? user.employee.toString() : "")) {
-        const err = new Error("Forbidden");
-        err.statusCode = 403;
-        throw err;
-      }
-      if (payslip.status !== "Paid") {
-        const err = new Error("Payslip is not yet published");
+      const userEmployeeId = await resolveEmployeeIdForUser(user);
+      const payslipEmployeeId = payslip.employee
+        ? (payslip.employee._id || payslip.employee).toString()
+        : null;
+
+      if (!userEmployeeId || !payslipEmployeeId || payslipEmployeeId !== userEmployeeId) {
+        const err = new Error("Forbidden: You can only view your own payslips");
         err.statusCode = 403;
         throw err;
       }

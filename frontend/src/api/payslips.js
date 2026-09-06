@@ -109,6 +109,13 @@ class PayslipsAPI {
       return { ok: false, success: false, message: error.message || "Failed to delete payslip" };
     }
   }
+
+  /**
+   * Get employee's own payslips: GET /api/employee/payslips
+   */
+  async getMyPayslips(params = {}) {
+    return this.listPayslips(params);
+  }
 }
 
 const payslipsApi = new PayslipsAPI();

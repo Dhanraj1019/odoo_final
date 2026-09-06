@@ -4,7 +4,15 @@ const usersController = require("../controllers/users.controller");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
-// All user management routes are strictly restricted to Admin users
+// 1. User lookup endpoint (accessible to Admin and HR Manager for Employee Smart Linking)
+router.get(
+  "/lookup",
+  requireAuth,
+  requireRole("Admin", "HR Manager"),
+  usersController.lookupUserByEmail
+);
+
+// 2. All administrative user management routes are strictly restricted to Admin users
 router.use(requireAuth, requireRole("Admin"));
 
 router.get("/", usersController.listUsers);

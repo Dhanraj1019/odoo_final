@@ -19,6 +19,7 @@ import PageContainer from "../../../components/layout/PageContainer";
 import payrunsApi from "../../../api/payruns";
 import payrollApi from "../../../api/payroll";
 import employeesApi from "../../../api/employees";
+import referencesApi from "../../../api/references";
 import { addNotification } from "../../notifications/notificationSlice";
 
 export default function PayrunNewWizardPage() {
@@ -39,6 +40,7 @@ export default function PayrunNewWizardPage() {
   const [structures, setStructures] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
+  const [departmentsError, setDepartmentsError] = useState("");
 
   // Step 2 Candidate Employees
   const [candidates, setCandidates] = useState([]);
@@ -51,10 +53,11 @@ export default function PayrunNewWizardPage() {
   useEffect(() => {
     async function loadMetadata() {
       setIsLoadingMetadata(true);
+      setDepartmentsError("");
       try {
         const [structRes, deptRes] = await Promise.all([
           payrollApi.listSalaryStructures({ status: "Active" }),
-          employeesApi.listDepartments ? employeesApi.listDepartments() : Promise.resolve({ ok: true, data: { departments: [] } }),
+          referencesApi.listDepartments(),
         ]);
 
         if (structRes.ok && (structRes.data?.salaryStructures || structRes.salaryStructures)) {
@@ -66,6 +69,8 @@ export default function PayrunNewWizardPage() {
         }
         if (deptRes.ok && (deptRes.data?.departments || deptRes.departments)) {
           setDepartments(deptRes.data?.departments || deptRes.departments || []);
+        } else if (!deptRes.ok) {
+          setDepartmentsError(deptRes.message || "Unable to load departments. Please try again.");
         }
 
         // Default to current month start & end
@@ -80,6 +85,7 @@ export default function PayrunNewWizardPage() {
         setName(`${now.toLocaleString("en-US", { month: "long" })} ${y} Payrun`);
       } catch (err) {
         console.error("Failed to load payrun metadata:", err);
+        setDepartmentsError("Unable to load departments. Please try again.");
       } finally {
         setIsLoadingMetadata(false);
       }
@@ -325,21 +331,42 @@ export default function PayrunNewWizardPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Filter Department (Optional)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Filter Department (Optional)
+                  </label>
+                  {isLoadingMetadata && (
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" /> Loading...
+                    </span>
+                  )}
+                </div>
                 <select
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  disabled={isLoadingMetadata}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <option value="">All Departments</option>
-                  {departments.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
+                  {isLoadingMetadata ? (
+                    <option value="">Loading departments...</option>
+                  ) : (
+                    <>
+                      <option value="">All Departments</option>
+                      {departments.map((d) => (
+                        <option key={d._id} value={d._id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
+                {departmentsError ? (
+                  <p className="text-[11px] text-amber-600 font-medium">{departmentsError}</p>
+                ) : !isLoadingMetadata && departments.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 font-medium italic">
+                    No departments are currently available.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">

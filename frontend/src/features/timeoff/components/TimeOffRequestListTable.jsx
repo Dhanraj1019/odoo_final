@@ -9,6 +9,8 @@ import {
   MessageSquare,
   Clock,
   ShieldCheck,
+  ArrowRight,
+  User,
 } from "lucide-react";
 import DataTable from "../../../components/table/DataTable";
 import TimeOffStatusBadge from "./TimeOffStatusBadge";
@@ -71,9 +73,14 @@ export default function TimeOffRequestListTable({
 
         return (
           <div className="text-xs">
-            <span className="font-bold text-slate-900">{start}</span>
-            <span className="text-slate-400 mx-1">→</span>
-            <span className="font-bold text-slate-900">{end}</span>
+            <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+              <span>{start}</span>
+              <span className="text-slate-400 font-normal">→</span>
+              <span>{end}</span>
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium block">
+              {start === end ? "Single Day" : "Multi-Day Range"}
+            </span>
           </div>
         );
       },
@@ -121,8 +128,8 @@ export default function TimeOffRequestListTable({
       accessor: (row) => row.timeOffType?.name || "",
       render: (_, row) => (
         <div className="text-xs">
-          <span className="font-bold text-slate-900">{row.timeOffType?.name || "—"}</span>
-          <span className="text-[11px] text-slate-400 block">
+          <span className="font-bold text-slate-900 block">{row.timeOffType?.name || "—"}</span>
+          <span className="text-[11px] text-slate-400 font-medium">
             {row.timeOffType?.isPaid ? "Paid Leave" : "Unpaid Leave"}
           </span>
         </div>
@@ -133,7 +140,7 @@ export default function TimeOffRequestListTable({
       header: "Duration",
       sortable: true,
       render: (dur, row) => (
-        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+        <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
           {(dur || 0).toFixed(1)} {row.timeOffType?.unit?.toLowerCase() || "days"}
         </span>
       ),
@@ -143,11 +150,18 @@ export default function TimeOffRequestListTable({
       header: "Reason / Notes",
       sortable: false,
       render: (_, row) => (
-        <div className="text-xs text-slate-600 max-w-[180px] truncate">
-          {row.status === "Refused" && row.reason && (
-            <span className="text-rose-600 font-medium">Refused: "{row.reason}"</span>
+        <div className="text-xs text-slate-600 max-w-[200px] truncate">
+          {row.status === "Refused" && row.reason ? (
+            <span className="text-rose-600 font-medium" title={row.reason}>
+              Refused: "{row.reason}"
+            </span>
+          ) : row.reason ? (
+            <span className="text-slate-600" title={row.reason}>
+              "{row.reason}"
+            </span>
+          ) : (
+            <span className="text-slate-400 italic">—</span>
           )}
-          {row.status !== "Refused" && (row.reason ? `"${row.reason}"` : <span className="text-slate-400 italic">—</span>)}
         </div>
       ),
     },
@@ -171,7 +185,7 @@ export default function TimeOffRequestListTable({
                 <button
                   type="button"
                   onClick={() => onApprove(row)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs hover:shadow-xs transition-all"
                   title="Approve Request"
                 >
                   <Check className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -182,7 +196,7 @@ export default function TimeOffRequestListTable({
                 <button
                   type="button"
                   onClick={() => handleOpenRefusal(row)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 font-bold text-xs transition-colors"
                   title="Refuse Request"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -244,7 +258,7 @@ export default function TimeOffRequestListTable({
                 value={refusalReason}
                 onChange={(e) => setRefusalReason(e.target.value)}
                 placeholder="e.g. Critical project milestone scheduled during this period..."
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
               />
             </div>
 
@@ -252,14 +266,14 @@ export default function TimeOffRequestListTable({
               <button
                 type="button"
                 onClick={() => setRefusalModalTarget(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-xl"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRefusal}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-colors"
               >
                 Confirm Refusal
               </button>
