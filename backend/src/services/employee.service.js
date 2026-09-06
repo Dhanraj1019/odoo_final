@@ -105,12 +105,40 @@ exports.generateNextEmployeeCode = async () => {
   return `EMP${padded}`;
 };
 
-exports.create = async (data) => {
-  const { email, manager, linkUserId } = data;
+exports.create = async (data, creatorId = null) => {
+  const { email, manager, linkUserId, password } = data;
 
   const normalizedEmail = email ? email.trim().toLowerCase() : "";
 
-  // 1. If linkUserId is provided, pre-validate the User account
+  // 1. If password is provided (Manual Employee with system account):
+  if (password) {
+    if (typeof password !== "string" || password.length < 8) {
+      const err = new Error("Password must contain at least 8 characters");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Verify whether a User account with this email already exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      const err = new Error(
+        "A user account with this email already exists. Please use 'Find Existing User' instead."
+      );
+      err.statusCode = 409;
+      err.code = "USER_EMAIL_EXISTS";
+      err.user = {
+        _id: existingUser._id,
+        id: existingUser._id,
+        fullName: existingUser.fullName,
+        email: existingUser.email,
+        roles: existingUser.roles,
+        isActive: existingUser.isActive,
+      };
+      throw err;
+    }
+  }
+
+  // 2. If linkUserId is provided, pre-validate the User account
   if (linkUserId) {
     const userToLink = await User.findById(linkUserId);
     if (!userToLink) {
@@ -130,7 +158,7 @@ exports.create = async (data) => {
     }
   }
 
-  // 2. Check unique email
+  // 3. Check unique email in Employee collection
   const existingEmail = await Employee.findOne({ email: normalizedEmail })
     .populate("department", "name")
     .populate("jobPosition", "title name")
@@ -164,7 +192,7 @@ exports.create = async (data) => {
     throw err;
   }
 
-  // 3. Robust Employee Code Generation with Concurrency & Retry handling
+  // 4. Robust Employee Code Generation with Concurrency & Retry handling
   const MAX_RETRIES = 5;
   let employee = null;
   let attempts = 0;
@@ -220,7 +248,7 @@ exports.create = async (data) => {
     throw err;
   }
 
-  // 4. If linkUserId was provided, atomically update User.employee with compensating rollback guard
+  // 5. If linkUserId was provided, atomically update User.employee with compensating rollback guard
   if (linkUserId) {
     const updatedUser = await User.findOneAndUpdate(
       { _id: linkUserId, employee: null, isActive: true },
@@ -239,8 +267,30 @@ exports.create = async (data) => {
       err.statusCode = 409;
       throw err;
     }
+  } else if (password) {
+    // Create new authentication / User account securely linked to employee
+    try {
+      const newUser = new User({
+        fullName: employee.fullName,
+        email: normalizedEmail,
+        password: password,
+        roles: Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : ["Employee"],
+        employee: employee._id,
+        isActive: employee.status !== "Inactive" && employee.status !== "Terminated",
+        createdBy: creatorId || null,
+      });
+      await newUser.save();
+    } catch (userCreateErr) {
+      // Compensating rollback: remove newly created employee if user creation fails
+      try {
+        await Employee.findByIdAndDelete(employee._id);
+      } catch (cleanupErr) {
+        console.error("Failed to clean up employee during user creation rollback:", cleanupErr);
+      }
+      throw userCreateErr;
+    }
   } else {
-    // If created without explicit linkUserId, auto-link to any unlinked user account matching the email
+    // If created without password and without explicit linkUserId, auto-link to any unlinked user account matching the email
     await User.findOneAndUpdate(
       { email: normalizedEmail, employee: null },
       { $set: { employee: employee._id } }
@@ -248,6 +298,69 @@ exports.create = async (data) => {
   }
 
   return exports.getById(employee._id);
+};
+
+/**
+ * Change or set password for an employee's linked User account.
+ * If no User account exists for this employee, provisions a new linked User account.
+ */
+exports.updatePassword = async (employeeId, newPassword, adminUserId = null) => {
+  if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+    const err = new Error("Invalid Employee ID");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+    const err = new Error("New password must contain at least 8 characters");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const employee = await Employee.findById(employeeId);
+  if (!employee) {
+    const err = new Error("Employee not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Find linked User account
+  let user = await User.findOne({
+    $or: [{ employee: employee._id }, { email: employee.email }],
+  });
+
+  if (!user) {
+    // If no user account exists yet, provision a login user account linked to this employee
+    user = new User({
+      fullName: employee.fullName,
+      email: employee.email,
+      password: newPassword,
+      roles: ["Employee"],
+      employee: employee._id,
+      isActive: employee.status !== "Inactive" && employee.status !== "Terminated",
+      createdBy: adminUserId,
+    });
+    await user.save();
+  } else {
+    // Update existing user password
+    user.password = newPassword;
+    if (!user.employee) {
+      user.employee = employee._id;
+    }
+    await user.save();
+  }
+
+  return {
+    success: true,
+    message: "Password updated successfully",
+    user: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      roles: user.roles,
+      isActive: user.isActive,
+    },
+  };
 };
 
 const ALLOWED_UPDATE_FIELDS = [

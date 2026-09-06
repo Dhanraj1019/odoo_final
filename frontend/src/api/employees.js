@@ -109,6 +109,26 @@ class EmployeesAPI {
   }
 
   /**
+   * Update or set password for an employee's linked User account
+   */
+  async updateEmployeePassword(id, newPassword) {
+    try {
+      const response = await fetch(`${BASE_URL}/${id}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newPassword }),
+      });
+
+      const result = await response.json();
+      return { ok: response.ok, ...result };
+    } catch (error) {
+      console.error("updateEmployeePassword error:", error);
+      return { ok: false, success: false, message: error.message || "Failed to update employee password" };
+    }
+  }
+
+  /**
    * Soft-delete / Terminate an employee record
    */
   async deleteEmployee(id) {

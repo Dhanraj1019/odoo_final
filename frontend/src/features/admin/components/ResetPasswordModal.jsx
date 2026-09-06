@@ -10,6 +10,7 @@ export default function ResetPasswordModal({ isOpen, onClose, user = null, onSuc
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -19,8 +20,13 @@ export default function ResetPasswordModal({ isOpen, onClose, user = null, onSuc
     e.preventDefault();
     setErrorMessage("");
 
-    if (!newPassword || newPassword.length < 6) {
-      setErrorMessage("New password must be at least 6 characters long.");
+    if (!newPassword || newPassword.length < 8) {
+      setErrorMessage("New password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!confirmPassword) {
+      setErrorMessage("Please confirm the new password.");
       return;
     }
 
@@ -68,7 +74,7 @@ export default function ResetPasswordModal({ isOpen, onClose, user = null, onSuc
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,15 +108,15 @@ export default function ResetPasswordModal({ isOpen, onClose, user = null, onSuc
                 type={showPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter at least 6 characters"
+                placeholder="Enter at least 8 characters"
                 className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all pr-10"
                 required
-                minLength={6}
+                minLength={8}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -122,15 +128,24 @@ export default function ResetPasswordModal({ isOpen, onClose, user = null, onSuc
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Confirm New Password <span className="text-rose-500">*</span>
             </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter new password"
-              className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
-              required
-              minLength={6}
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all pr-10"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons */}

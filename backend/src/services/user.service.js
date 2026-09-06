@@ -92,8 +92,8 @@ exports.createUser = async (userData, creatorId = null) => {
     throw err;
   }
 
-  if (!password || password.length < 6) {
-    const err = new Error("Password is required and must be at least 6 characters");
+  if (!password || typeof password !== "string" || password.length < 8) {
+    const err = new Error("Password is required and must be at least 8 characters");
     err.statusCode = 400;
     throw err;
   }
@@ -158,6 +158,12 @@ exports.updateUser = async (userId, updateData) => {
 };
 
 exports.resetPassword = async (userId, newPassword) => {
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+    const err = new Error("New password must be at least 8 characters long");
+    err.statusCode = 400;
+    throw err;
+  }
+
   const user = await User.findById(userId);
   if (!user) {
     const err = new Error("User not found");

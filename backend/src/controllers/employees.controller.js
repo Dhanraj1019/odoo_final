@@ -57,19 +57,42 @@ exports.createEmployee = asyncHandler(async (req, res) => {
   }
 
   try {
-    const employee = await employeeService.create(req.body);
+    const employee = await employeeService.create(req.body, req.user?._id);
     return success(res, { employee }, 201, "Employee created successfully");
   } catch (err) {
-    if (err.code === "EMPLOYEE_EMAIL_EXISTS" || err.statusCode === 409) {
+    if (err.code === "EMPLOYEE_EMAIL_EXISTS" || err.code === "USER_EMAIL_EXISTS" || err.statusCode === 409) {
       return res.status(409).json({
         success: false,
-        code: err.code || "EMPLOYEE_EMAIL_EXISTS",
-        message: err.message || "An employee already exists with this email.",
+        code: err.code || "EMAIL_CONFLICT",
+        message: err.message || "Email address conflict occurred.",
         employee: err.employee || null,
+        user: err.user || null,
       });
     }
     throw err;
   }
+});
+
+/**
+ * PUT /api/employees/:id/password
+ * Body: { newPassword }
+ */
+exports.updateEmployeePassword = asyncHandler(async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+    return error(
+      res,
+      "Validation Error: Password must be at least 8 characters",
+      400
+    );
+  }
+
+  const result = await employeeService.updatePassword(
+    req.params.id,
+    newPassword,
+    req.user?._id
+  );
+  return success(res, result, 200, "Password updated successfully");
 });
 
 /**

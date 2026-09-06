@@ -64,10 +64,10 @@ exports.updateUser = asyncHandler(async (req, res) => {
  */
 exports.resetPassword = asyncHandler(async (req, res) => {
   const { newPassword } = req.body;
-  if (!newPassword || newPassword.length < 6) {
+  if (!newPassword || newPassword.length < 8) {
     return error(
       res,
-      "Validation Error: newPassword must be at least 6 characters",
+      "Validation Error: newPassword must be at least 8 characters",
       400
     );
   }

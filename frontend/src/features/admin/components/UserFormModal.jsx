@@ -80,6 +80,10 @@ export default function UserFormModal({
   const [manualFullName, setManualFullName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
   const [manualPhone, setManualPhone] = useState("");
+  const [manualPassword, setManualPassword] = useState("");
+  const [manualConfirmPassword, setManualConfirmPassword] = useState("");
+  const [showManualPassword, setShowManualPassword] = useState(false);
+  const [showManualConfirmPassword, setShowManualConfirmPassword] = useState(false);
   const [manualDepartment, setManualDepartment] = useState("");
   const [manualJobPosition, setManualJobPosition] = useState("");
   const [manualManager, setManualManager] = useState("");
@@ -171,6 +175,10 @@ export default function UserFormModal({
         setManualFullName("");
         setManualEmail("");
         setManualPhone("");
+        setManualPassword("");
+        setManualConfirmPassword("");
+        setShowManualPassword(false);
+        setShowManualConfirmPassword(false);
         setManualDepartment("");
         setManualJobPosition("");
         setManualManager("");
@@ -205,6 +213,8 @@ export default function UserFormModal({
     if (mode === "manual") {
       setManualFullName("");
       setManualEmail(prefillEmail || "");
+      setManualPassword("");
+      setManualConfirmPassword("");
     } else if (mode === "existingUser") {
       setSearchEmail(prefillEmail || "");
     }
@@ -318,8 +328,28 @@ export default function UserFormModal({
           setIsSubmitting(false);
           return;
         }
-        if (!manualEmail.trim() || !manualEmail.includes("@")) {
+        if (!manualEmail.trim() || !manualEmail.includes("@") || !/^\S+@\S+\.\S+$/.test(manualEmail.trim())) {
           setErrorMessage("A valid work email address is required.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!manualPassword) {
+          setErrorMessage("Password is required.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (manualPassword.length < 8) {
+          setErrorMessage("Password must contain at least 8 characters.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!manualConfirmPassword) {
+          setErrorMessage("Please confirm the password.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (manualPassword !== manualConfirmPassword) {
+          setErrorMessage("Passwords do not match.");
           setIsSubmitting(false);
           return;
         }
@@ -327,6 +357,7 @@ export default function UserFormModal({
         const employeePayload = {
           fullName: manualFullName.trim(),
           email: manualEmail.trim().toLowerCase(),
+          password: manualPassword,
           phone: manualPhone.trim(),
           department: manualDepartment || null,
           jobPosition: manualJobPosition || null,
@@ -347,11 +378,15 @@ export default function UserFormModal({
           dispatch(
             addNotification({
               type: "success",
-              message: `Employee "${manualFullName}" created successfully.`,
+              message: `Employee "${manualFullName}" and login account created successfully.`,
             })
           );
           onSuccess?.();
           onClose();
+        } else if (res.code === "USER_EMAIL_EXISTS") {
+          const msg = res.message || "A user account with this email already exists. Please use 'Find Existing User' instead.";
+          setErrorMessage(msg);
+          dispatch(addNotification({ type: "error", message: msg }));
         } else if (res.code === "EMPLOYEE_EMAIL_EXISTS" || res.status === 409) {
           const msg = res.message || "An employee already exists with this email.";
           setErrorMessage(msg);
@@ -404,6 +439,12 @@ export default function UserFormModal({
             setErrorMessage(res.message || "Failed to update user account.");
           }
         } else {
+          if (!password || password.length < 8) {
+            setErrorMessage("Password is required and must contain at least 8 characters.");
+            setIsSubmitting(false);
+            return;
+          }
+
           const createPayload = {
             fullName: fullName.trim(),
             email: email.trim().toLowerCase(),
@@ -521,7 +562,7 @@ export default function UserFormModal({
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900">Manual Employee Entry</p>
                   <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
-                    Create an employee without a system account
+                    Create an employee and system login account
                   </p>
                 </div>
               </button>
@@ -538,6 +579,16 @@ export default function UserFormModal({
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
+              {errorMessage.includes("Find Existing User") && (
+                <button
+                  type="button"
+                  onClick={() => handleSwitchMode("existingUser", manualEmail.trim().toLowerCase())}
+                  className="mt-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Switch to Find Existing User</span>
+                </button>
+              )}
               {manualConflictEmployee && (
                 <div className="mt-2 p-3 bg-white border border-rose-200/80 rounded-xl text-xs space-y-1 text-slate-700 shadow-2xs">
                   <p className="font-bold text-slate-900">{manualConflictEmployee.fullName || manualConflictEmployee.name}</p>
@@ -1017,6 +1068,56 @@ export default function UserFormModal({
                         placeholder="+1 (555) 000-0000"
                         className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
                       />
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Password <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showManualPassword ? "text" : "password"}
+                          value={manualPassword}
+                          onChange={(e) => setManualPassword(e.target.value)}
+                          placeholder="Min. 8 characters"
+                          className="w-full text-xs font-medium pl-3.5 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowManualPassword(!showManualPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          {showManualPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Confirm Password <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showManualConfirmPassword ? "text" : "password"}
+                          value={manualConfirmPassword}
+                          onChange={(e) => setManualConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password"
+                          className="w-full text-xs font-medium pl-3.5 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowManualConfirmPassword(!showManualConfirmPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          {showManualConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Date of Joining */}

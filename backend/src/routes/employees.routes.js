@@ -20,6 +20,7 @@ router.get("/", requireAuth, requireRole(HR_ROLES), employeesController.listEmpl
 router.get("/:id", requireAuth, requireRole(HR_ROLES), employeesController.getEmployeeById);
 router.post("/", requireAuth, requireRole(HR_ROLES), employeesController.createEmployee);
 router.put("/:id", requireAuth, requireRole(HR_ROLES), employeesController.updateEmployee);
+router.put("/:id/password", requireAuth, requireRole("Admin", "HR Manager"), employeesController.updateEmployeePassword);
 router.delete("/:id", requireAuth, requireRole(HR_ROLES), employeesController.deleteEmployee);
 
 module.exports = router;
