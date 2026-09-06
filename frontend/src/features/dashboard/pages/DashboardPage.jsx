@@ -86,20 +86,41 @@ export default function DashboardPage() {
   const timeOffOverview = dashboardData?.timeOffOverview || {};
   const departmentBreakdown = dashboardData?.departmentBreakdown || [];
 
+  // Dynamic Role-Aware Title & Description
+  const userRoles = Array.isArray(currentUser?.roles) ? currentUser.roles : [];
+  const isAdmin = userRoles.includes("Admin");
+  const isPayroll = userRoles.includes("HR Payroll Manager") || userRoles.includes("HR Payroll User");
+
+  let dashboardTitle = "Executive Leadership Dashboard";
+  if (!isAdmin && isPayroll) {
+    dashboardTitle = "Payroll & Compensation Dashboard";
+  } else if (!isAdmin && !isPayroll) {
+    dashboardTitle = "Human Resources & Workforce Dashboard";
+  }
+
+  const dashboardDesc =
+    scope === "full"
+      ? "Real-time workforce payroll analytics, cost distributions, attendance, and operational intelligence"
+      : "Workforce operations cockpit: attendance compliance, leave management, and organizational headcounts";
+
   return (
     <PageContainer
-      title="HR & Payroll Executive Dashboard"
-      description={
-        scope === "full"
-          ? "Real-time workforce payroll analytics, cost distributions, attendance, and operational intelligence"
-          : "Workforce operations cockpit: attendance compliance, leave management, and organizational headcounts"
-      }
-      breadcrumbs={[{ label: "Overview", path: "/dashboard" }, { label: "Executive Dashboard" }]}
+      title={dashboardTitle}
+      description={dashboardDesc}
+      breadcrumbs={[{ label: "Overview", path: "/dashboard" }, { label: dashboardTitle }]}
       actions={
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 shadow-2xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Scope: <span className="uppercase text-indigo-900">{scope}</span></span>
+          <span
+            className={`inline-flex items-center gap-1.5 font-mono text-xs font-bold px-3 py-1.5 rounded-xl border shadow-2xs ${
+              scope === "full"
+                ? "bg-indigo-50 border-indigo-200/80 text-indigo-700"
+                : "bg-cyan-50 border-cyan-200/80 text-cyan-800"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              Scope: <span className="uppercase font-extrabold">{scope === "full" ? "FULL (FINANCIAL & HR)" : "HR / WORKFORCE"}</span>
+            </span>
           </span>
         </div>
       }
@@ -120,17 +141,63 @@ export default function DashboardPage() {
 
         {/* Error State */}
         {errorMessage && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs font-semibold flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{errorMessage}</span>
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs font-semibold flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span className="truncate">{errorMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={loadDashboard}
+              className="px-3 py-1 bg-white hover:bg-rose-100/50 border border-rose-300 text-rose-700 rounded-lg font-bold text-xs transition-colors shrink-0 cursor-pointer"
+            >
+              Retry
+            </button>
           </div>
         )}
 
-        {/* Loading Spinner Skeleton */}
+        {/* Dynamic Skeleton Loading State */}
         {isLoading && !dashboardData ? (
-          <div className="py-32 flex flex-col items-center justify-center space-y-3 text-slate-400">
-            <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
-            <p className="text-xs font-bold text-slate-600">Aggregating workforce intelligence...</p>
+          <div className="space-y-6 animate-pulse">
+            {/* KPI Skeletons */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${scope === "full" ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4"} gap-3.5 sm:gap-4`}>
+              {[...Array(scope === "full" ? 6 : 4)].map((_, i) => (
+                <div key={i} className="bg-white border border-slate-200/70 rounded-2xl p-4 sm:p-5 h-[125px] flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 bg-slate-200 rounded-md w-24" />
+                    <div className="w-8 h-8 rounded-xl bg-slate-100" />
+                  </div>
+                  <div>
+                    <div className="h-7 bg-slate-200 rounded-md w-28 mb-1.5" />
+                    <div className="h-2.5 bg-slate-100 rounded-md w-20" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Charts Skeleton (Only when scope === full) */}
+            {scope === "full" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200/70 rounded-2xl p-5 sm:p-6 h-[340px] flex flex-col justify-between">
+                  <div className="h-4 bg-slate-200 rounded-md w-44" />
+                  <div className="h-56 bg-slate-100 rounded-xl" />
+                </div>
+                <div className="bg-white border border-slate-200/70 rounded-2xl p-5 sm:p-6 h-[340px] flex flex-col justify-between">
+                  <div className="h-4 bg-slate-200 rounded-md w-44" />
+                  <div className="h-56 bg-slate-100 rounded-xl" />
+                </div>
+              </div>
+            )}
+
+            {/* Operational Panels Skeletons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white border border-slate-200/70 rounded-2xl p-5 h-[260px] flex flex-col justify-between">
+                  <div className="h-4 bg-slate-200 rounded-md w-36" />
+                  <div className="h-32 bg-slate-100 rounded-xl" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
@@ -142,7 +209,7 @@ export default function DashboardPage() {
               departmentBreakdown={departmentBreakdown}
             />
 
-            {/* 2. Visualizations (Only rendered when scope === "full") */}
+            {/* 2. Visualizations (Rendered when scope === "full") */}
             {scope === "full" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SalaryCostByDepartmentChart data={charts.salaryCostByDepartment || []} />

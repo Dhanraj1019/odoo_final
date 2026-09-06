@@ -105,7 +105,7 @@ export default function PayrollAlertsPanel({ alerts = [] }) {
           )}
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {alerts.map((alert, idx) => {
             const meta = ALERT_META[alert.type] || {
               label: alert.type.replace(/_/g, " "),
@@ -119,10 +119,11 @@ export default function PayrollAlertsPanel({ alerts = [] }) {
             const hasIssues = count > 0;
             const style = getSeverityClasses(meta.color, hasIssues);
 
-            return (
+            const content = (
               <div
-                key={idx}
-                className={`p-3 rounded-xl border transition-colors flex items-center justify-between gap-3 ${style.card}`}
+                className={`p-3 rounded-xl border transition-all duration-150 flex items-center justify-between gap-3 ${style.card} ${
+                  hasIssues ? "group hover:border-slate-300" : ""
+                }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${style.icon}`}>
@@ -130,7 +131,7 @@ export default function PayrollAlertsPanel({ alerts = [] }) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate" title={meta.label}>{meta.label}</p>
-                    <p className="text-[11px] text-slate-400 truncate" title={meta.desc}>{meta.desc}</p>
+                    <p className="text-[11px] text-slate-500 truncate" title={meta.desc}>{meta.desc}</p>
                   </div>
                 </div>
 
@@ -139,16 +140,18 @@ export default function PayrollAlertsPanel({ alerts = [] }) {
                     {count}
                   </span>
                   {hasIssues && (
-                    <Link
-                      to={meta.link}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
-                      title="View details"
-                    >
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                   )}
                 </div>
               </div>
+            );
+
+            return hasIssues ? (
+              <Link key={idx} to={meta.link} className="block cursor-pointer focus:outline-hidden">
+                {content}
+              </Link>
+            ) : (
+              <div key={idx}>{content}</div>
             );
           })}
         </div>

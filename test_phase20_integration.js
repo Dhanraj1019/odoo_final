@@ -403,6 +403,20 @@ async function runPhase20Tests() {
     });
     assert(attendanceRes.statusCode === 200, "Phase 19 Attendance Logs intact (200)");
 
+    // Clean up created test resources
+    console.log("\nCleaning up Phase 20 test records...");
+    try {
+      if (reqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${reqId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (excessiveReqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${excessiveReqId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (req2Id) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${req2Id}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (allocId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-allocations/${allocId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (typeId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-types/${typeId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (autoTypeId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-types/${autoTypeId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      console.log("✓ Phase 20 test records cleaned up successfully");
+    } catch (cleanupErr) {
+      console.warn("Cleanup warning:", cleanupErr.message);
+    }
+
     // Summary
     console.log("\n================================================================");
     console.log(`   PHASE 20 VERIFICATION SUMMARY: ${passed} PASSED, ${failed} FAILED`);

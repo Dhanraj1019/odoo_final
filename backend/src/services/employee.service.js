@@ -20,10 +20,19 @@ exports.list = async (query = {}) => {
 
   if (query.search) {
     const searchRegex = new RegExp(query.search.trim(), "i");
+    const [matchingDepts, matchingJobs] = await Promise.all([
+      mongoose.model("Department").find({ name: searchRegex }).select("_id"),
+      mongoose.model("JobPosition").find({ name: searchRegex }).select("_id"),
+    ]);
+    const deptIds = matchingDepts.map((d) => d._id);
+    const jobIds = matchingJobs.map((j) => j._id);
+
     filter.$or = [
       { fullName: searchRegex },
       { email: searchRegex },
       { employeeCode: searchRegex },
+      ...(deptIds.length > 0 ? [{ department: { $in: deptIds } }] : []),
+      ...(jobIds.length > 0 ? [{ jobPosition: { $in: jobIds } }] : []),
     ];
   }
 
@@ -642,11 +651,11 @@ exports.lookupByEmail = async (email) => {
     hasUserAccount: Boolean(existingUser),
     existingUser: existingUser
       ? {
-          _id: existingUser._id,
-          fullName: existingUser.fullName,
-          email: existingUser.email,
-          isActive: existingUser.isActive,
-        }
+        _id: existingUser._id,
+        fullName: existingUser.fullName,
+        email: existingUser.email,
+        isActive: existingUser.isActive,
+      }
       : null,
   };
 };

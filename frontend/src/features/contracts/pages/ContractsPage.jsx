@@ -39,6 +39,8 @@ export default function ContractsPage() {
   const [salaryStructures, setSalaryStructures] = useState([]);
   const [workingSchedules, setWorkingSchedules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingStructures, setIsLoadingStructures] = useState(false);
+  const [structuresError, setStructuresError] = useState("");
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,6 +53,8 @@ export default function ContractsPage() {
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
+    setIsLoadingStructures(true);
+    setStructuresError("");
     try {
       const [contractsRes, empRes, deptRes, posRes, strRes, schRes] = await Promise.all([
         contractsApi.listContracts({
@@ -79,20 +83,39 @@ export default function ContractsPage() {
       }
       if (strRes.ok && (strRes.data?.salaryStructures || strRes.salaryStructures)) {
         setSalaryStructures(strRes.data?.salaryStructures || strRes.salaryStructures || []);
+      } else if (!strRes.ok) {
+        setStructuresError(strRes.message || "Failed to load salary structures");
       }
       if (schRes.ok && (schRes.data?.workingSchedules || schRes.workingSchedules)) {
         setWorkingSchedules(schRes.data?.workingSchedules || schRes.workingSchedules || []);
       }
     } catch (err) {
       console.error("Failed to load contracts data:", err);
+      setStructuresError("Failed to load salary structures");
     } finally {
       setIsLoading(false);
+      setIsLoadingStructures(false);
     }
   }, [employeeFilterId, selectedDepartment, selectedStatus]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleEdit = async (contract) => {
+    try {
+      const res = await contractsApi.getContractById(contract._id);
+      if (res.ok && (res.data?.contract || res.contract)) {
+        setEditingContract(res.data?.contract || res.contract);
+      } else {
+        setEditingContract(contract);
+      }
+    } catch (err) {
+      console.error("Failed to fetch contract details:", err);
+      setEditingContract(contract);
+    }
+    setIsModalOpen(true);
+  };
 
   const handleDelete = async (contract) => {
     if (
@@ -347,10 +370,7 @@ export default function ContractsPage() {
           contracts={filteredContracts}
           isLoading={isLoading}
           canWrite={canWrite}
-          onEdit={(contract) => {
-            setEditingContract(contract);
-            setIsModalOpen(true);
-          }}
+          onEdit={handleEdit}
           onDelete={handleDelete}
         />
       </div>
@@ -372,6 +392,8 @@ export default function ContractsPage() {
         jobPositions={jobPositions}
         salaryStructures={salaryStructures}
         workingSchedules={workingSchedules}
+        isLoadingStructures={isLoadingStructures}
+        structuresError={structuresError}
       />
     </PageContainer>
   );

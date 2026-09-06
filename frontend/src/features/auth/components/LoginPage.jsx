@@ -22,13 +22,13 @@ export default function LoginPage() {
   }, [isAuthenticated, user, navigate]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/5 border border-slate-200/90 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 mb-3 shadow-2xs">
-          <Lock className="w-5 h-5" />
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-5 sm:p-7 transition-all">
+      <div className="text-center mb-4">
+        <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 mb-2">
+          <Lock className="w-4 h-4" />
         </div>
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-        <p className="text-xs text-slate-500 mt-1 font-normal">
+        <p className="text-xs text-slate-500 mt-0.5 font-normal">
           Sign in to access your HR & Payroll workspace
         </p>
       </div>
@@ -37,4 +37,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -399,20 +399,19 @@ async function runPhase25E2ESuite() {
     assert(appAllocRes.statusCode === 200, "Admin approved Quota Allocation (200)");
 
     // 2D. Create Login User Account for this Employee
-    const empUserEmail = `user_emp_${ts}@peoplepay360.local`;
     const empUserPass = `EmpUserPass_${ts}!`;
     const createUserRes = await request(
       { hostname: "localhost", port: 5000, path: "/api/users", method: "POST", headers: { "Content-Type": "application/json", Cookie: admin.cookie } },
       {
         fullName: `Dr. Alan Turing ${ts}`,
-        email: empUserEmail,
+        email: empEmail,
         password: empUserPass,
         roles: ["Employee"],
         employeeId: newEmpId,
       }
     );
     assert(createUserRes.statusCode === 201, "Provisioned linked Employee User Account (201)");
-    const empSession = await login(empUserEmail, empUserPass);
+    const empSession = await login(empEmail, empUserPass);
     assert(empSession.statusCode === 200, "Employee logged in successfully (200)");
 
     // 2E. Employee Submits Leave Request (3 Days: Mon-Wed Sep 7-9, 2026)
@@ -503,6 +502,21 @@ async function runPhase25E2ESuite() {
 
     const empCheckRules = await request({ hostname: "localhost", port: 5000, path: "/api/salary-rules", method: "GET", headers: { Cookie: employee.cookie } });
     assert(empCheckRules.statusCode === 403, "Employee blocked from /api/salary-rules (403 Forbidden)");
+
+    // Clean up created test resources
+    console.log("\nCleaning up Phase 25 test records...");
+    try {
+      if (leaveReqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${leaveReqId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (excessReqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${excessReqId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (allocId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-allocations/${allocId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (timeOffTypeId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-types/${timeOffTypeId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      const createdUserId = createUserRes.body?.data?.user?._id || createUserRes.body?.user?._id;
+      if (createdUserId) await request({ hostname: "localhost", port: 5000, path: `/api/users/${createdUserId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      if (newEmpId) await request({ hostname: "localhost", port: 5000, path: `/api/employees/${newEmpId}`, method: "DELETE", headers: { Cookie: admin.cookie } });
+      console.log("✓ Phase 25 test records cleaned up successfully");
+    } catch (cleanupErr) {
+      console.warn("Cleanup warning:", cleanupErr.message);
+    }
 
     console.log("\n================================================================================");
     console.log(`   PHASE 25 E2E VERIFICATION SUMMARY: ${passed} PASSED, ${failed} FAILED`);

@@ -3,6 +3,7 @@ const Contract = require("../models/Contract");
 require("../models/Department");
 require("../models/JobPosition");
 require("../models/WorkingSchedule");
+require("../models/SalaryStructure");
 
 /**
  * Contract Service
@@ -62,32 +63,22 @@ exports.list = async (query = {}) => {
     filter.status = query.status;
   }
 
-  let dbQuery = Contract.find(filter)
+  return Contract.find(filter)
     .populate("employee", "fullName employeeCode email")
     .populate("department")
     .populate("jobPosition")
     .populate("workingSchedule")
+    .populate("salaryStructure")
     .sort({ startDate: -1 });
-
-  if (mongoose.models.SalaryStructure) {
-    dbQuery = dbQuery.populate("salaryStructure");
-  }
-
-  return dbQuery;
 };
 
 exports.getById = async (id) => {
-  let dbQuery = Contract.findById(id)
+  return Contract.findById(id)
     .populate("employee", "fullName employeeCode email")
     .populate("department")
     .populate("jobPosition")
-    .populate("workingSchedule");
-
-  if (mongoose.models.SalaryStructure) {
-    dbQuery = dbQuery.populate("salaryStructure");
-  }
-
-  return dbQuery;
+    .populate("workingSchedule")
+    .populate("salaryStructure");
 };
 
 exports.create = async (data) => {
@@ -125,12 +116,14 @@ exports.update = async (id, data) => {
   const nextStatus = data.status !== undefined ? data.status : contract.status;
   const nextStartDate = data.startDate !== undefined ? data.startDate : contract.startDate;
   const nextEndDate = data.endDate !== undefined ? data.endDate : contract.endDate;
-  const employeeId = contract.employee;
+  const employeeId = data.employee !== undefined ? (data.employee?._id || data.employee) : contract.employee;
 
   if (nextStatus === "Active") {
     await checkActiveOverlap(employeeId, nextStartDate, nextEndDate, id);
   }
 
+  if (data.employee !== undefined) contract.employee = data.employee?._id || data.employee;
+  if (data.contractReference !== undefined) contract.contractReference = data.contractReference;
   if (data.department !== undefined) contract.department = data.department || null;
   if (data.jobPosition !== undefined) contract.jobPosition = data.jobPosition || null;
   if (data.startDate !== undefined) contract.startDate = data.startDate;
@@ -175,7 +168,8 @@ exports.resolveApplicableContract = async (employeeId, periodStart, periodEnd) =
   })
     .populate("department")
     .populate("jobPosition")
-    .populate("workingSchedule");
+    .populate("workingSchedule")
+    .populate("salaryStructure");
 
   if (overlapping.length === 0) {
     return { contract: null, issue: "NO_CONTRACT" };

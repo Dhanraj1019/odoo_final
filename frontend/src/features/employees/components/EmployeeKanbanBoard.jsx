@@ -44,56 +44,87 @@ export default function EmployeeKanbanBoard({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Group columns
+  // Group columns from CURRENT filtered employees
   const columns = useMemo(() => {
-    if (groupBy === "department") {
-      const deptMap = {};
-      departments.forEach((d) => {
-        deptMap[d._id] = {
-          id: d._id,
-          title: d.name,
-          items: [],
-        };
-      });
+    if (!employees || employees.length === 0) {
+      return [];
+    }
 
-      const unassigned = {
-        id: "unassigned",
-        title: "Unassigned Department",
-        items: [],
-      };
+    if (groupBy === "department") {
+      const deptMap = new Map();
+      const unassignedEmployees = [];
 
       employees.forEach((emp) => {
-        const deptId = emp.department?._id || emp.department;
-        if (deptId && deptMap[deptId]) {
-          deptMap[deptId].items.push(emp);
+        const deptObj = emp.department;
+        const deptId = deptObj?._id ? deptObj._id.toString() : typeof deptObj === "string" ? deptObj : null;
+        const deptName =
+          deptObj?.name ||
+          (deptId && departments.find((d) => (d._id || d.id)?.toString() === deptId)?.name) ||
+          null;
+
+        if (deptId && deptName) {
+          if (!deptMap.has(deptId)) {
+            deptMap.set(deptId, {
+              id: deptId,
+              title: deptName,
+              items: [],
+            });
+          }
+          deptMap.get(deptId).items.push(emp);
         } else {
-          unassigned.items.push(emp);
+          unassignedEmployees.push(emp);
         }
       });
 
-      const result = Object.values(deptMap);
-      if (unassigned.items.length > 0 || result.length === 0) {
-        result.push(unassigned);
+      // Sort non-empty departments alphabetically
+      const result = Array.from(deptMap.values()).sort((a, b) =>
+        a.title.localeCompare(b.title)
+      );
+
+      // Only add Unassigned column if there are unassigned employees
+      if (unassignedEmployees.length > 0) {
+        result.push({
+          id: "unassigned",
+          title: "Unassigned Department",
+          items: unassignedEmployees,
+        });
       }
+
       return result;
     } else {
-      // Group by Status
-      const statusMap = {
-        Active: { id: "Active", title: "Active", items: [] },
-        Inactive: { id: "Inactive", title: "Inactive", items: [] },
-        Terminated: { id: "Terminated", title: "Terminated", items: [] },
-      };
+      // Group by Status from filtered employees
+      const statusMap = new Map();
+      const knownStatuses = ["Active", "Inactive", "Terminated"];
 
       employees.forEach((emp) => {
         const st = emp.status || "Active";
-        if (statusMap[st]) {
-          statusMap[st].items.push(emp);
-        } else {
-          statusMap.Active.items.push(emp);
+        if (!statusMap.has(st)) {
+          statusMap.set(st, {
+            id: st,
+            title: st,
+            items: [],
+          });
+        }
+        statusMap.get(st).items.push(emp);
+      });
+
+      // Order known statuses first, then any extra
+      const result = [];
+      knownStatuses.forEach((st) => {
+        if (statusMap.has(st) && statusMap.get(st).items.length > 0) {
+          result.push(statusMap.get(st));
+          statusMap.delete(st);
         }
       });
 
-      return Object.values(statusMap);
+      // Any remaining non-empty status
+      statusMap.forEach((col) => {
+        if (col.items.length > 0) {
+          result.push(col);
+        }
+      });
+
+      return result;
     }
   }, [employees, departments, groupBy]);
 
@@ -109,56 +140,61 @@ export default function EmployeeKanbanBoard({
           <button
             type="button"
             onClick={() => setGroupBy("department")}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-              groupBy === "department"
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${groupBy === "department"
                 ? "bg-white text-indigo-600 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             Department
           </button>
           <button
             type="button"
             onClick={() => setGroupBy("status")}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-              groupBy === "status"
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${groupBy === "status"
                 ? "bg-white text-indigo-600 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             Status
           </button>
         </div>
       </div>
 
-      {/* Kanban Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-start">
-        {columns.map((col) => (
-          <div
-            key={col.id}
-            className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-3 min-h-[400px]"
-          >
-            {/* Column Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                <h3 className="text-sm font-bold text-slate-800 tracking-tight truncate max-w-[180px]">
-                  {col.title}
-                </h3>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-white text-slate-700 border border-slate-200 shadow-xs">
-                {col.items.length}
-              </span>
-            </div>
-
-            {/* Cards List */}
-            <div className="space-y-3 flex-1">
-              {col.items.length === 0 ? (
-                <div className="h-32 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-xs font-medium text-slate-400">
-                  No employees in this group
+      {/* Empty State when no filtered employees exist */}
+      {!isLoading && employees.length === 0 ? (
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-3">
+            <User className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-800">No employees found</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Try adjusting your search criteria or clear your active filters.
+          </p>
+        </div>
+      ) : (
+        /* Kanban Columns Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-start">
+          {columns.map((col) => (
+            <div
+              key={col.id}
+              className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-3 min-h-[200px]"
+            >
+              {/* Column Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight truncate max-w-[180px]" title={col.title}>
+                    {col.title}
+                  </h3>
                 </div>
-              ) : (
-                col.items.map((emp) => (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white text-slate-700 border border-slate-200 shadow-xs shrink-0">
+                  {col.items.length}
+                </span>
+              </div>
+
+              {/* Cards List */}
+              <div className="space-y-3 flex-1">
+                {col.items.map((emp) => (
                   <div
                     key={emp._id}
                     onClick={() => navigate(`/employees/${emp._id}`)}
@@ -166,7 +202,7 @@ export default function EmployeeKanbanBoard({
                   >
                     {/* Card Top */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div
                           className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${getAvatarColor(
                             emp.fullName
@@ -184,7 +220,7 @@ export default function EmployeeKanbanBoard({
                         </div>
                       </div>
 
-                      <div className="p-1 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all">
+                      <div className="p-1 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0">
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
@@ -226,12 +262,12 @@ export default function EmployeeKanbanBoard({
                       <EmployeeStatusBadge status={emp.status} />
                     </div>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

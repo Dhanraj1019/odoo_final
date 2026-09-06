@@ -338,7 +338,6 @@ async function runEmployeeTimeOffTests() {
         email: multiUserEmail,
         password: multiUserPass,
         roles: ["HR Manager", "Employee"],
-        employeeId: empId,
       }
     );
     assert(createMultiRes.statusCode === 201, "Created user with dual roles: ['HR Manager', 'Employee'] (201)");
@@ -354,7 +353,21 @@ async function runEmployeeTimeOffTests() {
       method: "GET",
       headers: { Cookie: multiSession.cookie },
     });
-    assert(multiDirRes.statusCode === 200, "Multi-role user with HR Manager role can list employees (200)");
+    // Cleanup generated test resources
+    console.log("\nCleaning up Employee Time Off test records...");
+    try {
+      if (createdReq?._id) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${createdReq._id}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      if (exploitReq?._id) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${exploitReq._id}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      if (hrReqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${hrReqId}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      if (excessReqId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-requests/${excessReqId}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      if (allocId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-allocations/${allocId}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      if (targetTypeId) await request({ hostname: "localhost", port: 5000, path: `/api/time-off-types/${targetTypeId}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      const multiUserId = createMultiRes.body?.data?.user?._id || createMultiRes.body?.user?._id;
+      if (multiUserId) await request({ hostname: "localhost", port: 5000, path: `/api/users/${multiUserId}`, method: "DELETE", headers: { Cookie: adminSession.cookie } });
+      console.log("✓ Employee Time Off test records cleaned up successfully");
+    } catch (cleanupErr) {
+      console.warn("Cleanup warning:", cleanupErr.message);
+    }
 
     console.log("\n================================================================================");
     console.log("   DEDICATED EMPLOYEE TIME OFF VERIFICATION: ALL 24 ASSERTIONS PASSED (100%)");

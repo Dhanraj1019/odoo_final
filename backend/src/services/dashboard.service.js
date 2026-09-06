@@ -148,8 +148,13 @@ exports.getDashboardData = async (query = {}, user = null) => {
 
   if (scope === "full") {
     // Salary Cost by Department
+    const deptSalaryMatch = { status: "Paid", periodStart: { $gte: from, $lte: to } };
+    if (scopedEmployeeIds) {
+      deptSalaryMatch.employee = { $in: scopedEmployeeIds };
+    }
+
     salaryCostByDepartment = await Payslip.aggregate([
-      { $match: { status: "Paid", periodStart: { $gte: from, $lte: to } } },
+      { $match: deptSalaryMatch },
       { $lookup: { from: "employees", localField: "employee", foreignField: "_id", as: "emp" } },
       { $unwind: "$emp" },
       { $group: { _id: "$emp.department", amount: { $sum: "$netSalary" } } },
@@ -165,13 +170,22 @@ exports.getDashboardData = async (query = {}, user = null) => {
       { $sort: { amount: -1 } },
     ]);
 
-    // Monthly Net Salary Trend (Last 12 months)
+    // Monthly Net Salary Trend (Up to 12 months in scope ending at current selected period)
     const twelveMonthsAgo = new Date(from);
     twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 11);
     twelveMonthsAgo.setUTCDate(1);
+    twelveMonthsAgo.setUTCHours(0, 0, 0, 0);
+
+    const trendMatch = {
+      status: "Paid",
+      periodStart: { $gte: twelveMonthsAgo, $lte: to },
+    };
+    if (scopedEmployeeIds) {
+      trendMatch.employee = { $in: scopedEmployeeIds };
+    }
 
     monthlyNetSalaryTrend = await Payslip.aggregate([
-      { $match: { status: "Paid", periodStart: { $gte: twelveMonthsAgo } } },
+      { $match: trendMatch },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m", date: "$periodStart" } },

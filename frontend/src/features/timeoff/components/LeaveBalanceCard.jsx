@@ -49,36 +49,56 @@ export default function LeaveBalanceCard({
     loadBalances();
   }, [loadBalances, refreshTrigger]);
 
-  // Aggregate balance per leave type
-  const balances = types
-    .filter((t) => t.requiresAllocation !== false)
-    .map((type) => {
-      const matchedAllocations = allocations.filter(
-        (a) => (a.timeOffType?._id || a.timeOffType) === type._id
-      );
+  // Map type lookup map for quick, complete metadata resolution
+  const typeMap = new Map();
+  for (const t of types) {
+    if (t && t._id) {
+      typeMap.set(String(t._id), t);
+    }
+  }
 
-      const allocated = matchedAllocations.reduce(
-        (sum, a) => sum + (Number(a.allocatedAmount) || 0),
-        0
-      );
-      const taken = matchedAllocations.reduce(
-        (sum, a) => sum + (Number(a.takenAmount) || 0),
-        0
-      );
-      const remaining = Math.max(0, allocated - taken);
-      const percent =
-        allocated > 0
-          ? Math.min(100, Math.max(0, Math.round((remaining / allocated) * 100)))
-          : 0;
+  // Aggregate balance per allocated leave type
+  const allocationsByType = new Map();
 
-      return {
-        type,
-        allocated,
-        taken,
-        remaining,
-        percent,
-      };
-    });
+  for (const a of allocations) {
+    if (!a || a.status !== "Approved") continue;
+
+    const rawType = a.timeOffType;
+    const typeId = String(rawType?._id || rawType || "");
+    if (!typeId) continue;
+
+    const typeObj = typeMap.get(typeId) || (typeof rawType === "object" ? rawType : null);
+    if (!typeObj || !typeObj.name) continue;
+    if (typeObj.status === "Archived" || typeObj.requiresAllocation === false) continue;
+
+    if (!allocationsByType.has(typeId)) {
+      allocationsByType.set(typeId, {
+        type: typeObj,
+        allocated: 0,
+        taken: 0,
+      });
+    }
+
+    const entry = allocationsByType.get(typeId);
+    entry.allocated += Number(a.allocatedAmount) || 0;
+    entry.taken += Number(a.takenAmount) || 0;
+  }
+
+  const balances = Array.from(allocationsByType.values()).map(({ type, allocated, taken }) => {
+    const remaining = Math.max(0, allocated - taken);
+    const percent =
+      allocated > 0
+        ? Math.min(100, Math.max(0, Math.round((remaining / allocated) * 100)))
+        : 0;
+
+    return {
+      type,
+      allocated,
+      taken,
+      remaining,
+      percent,
+    };
+  });
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-5">

@@ -144,7 +144,7 @@ export default function ContractListTable({
       accessor: (row) => row.salaryStructure?.name || "",
       render: (_, row) => (
         <span className="text-xs text-slate-600 font-medium">
-          {row.salaryStructure?.name || <span className="text-slate-400 italic">Standard</span>}
+          {row.salaryStructure?.name || <span className="text-slate-400 italic">Unassigned</span>}
         </span>
       ),
     },

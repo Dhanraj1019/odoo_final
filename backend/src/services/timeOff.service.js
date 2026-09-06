@@ -132,10 +132,12 @@ exports.listAllocations = async (query = {}, user = null) => {
   if (query.timeOffType) filter.timeOffType = query.timeOffType;
   if (query.status) filter.status = query.status;
 
-  return TimeOffAllocation.find(filter)
+  const allocations = await TimeOffAllocation.find(filter)
     .populate("employee", "fullName employeeCode email")
     .populate("timeOffType")
     .sort({ createdAt: -1 });
+
+  return allocations.filter((a) => a.timeOffType && typeof a.timeOffType === "object");
 };
 
 exports.getAllocationById = async (id, user = null) => {

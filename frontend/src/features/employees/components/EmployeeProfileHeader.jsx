@@ -64,7 +64,7 @@ export default function EmployeeProfileHeader({
         {/* Left Section: Avatar + Details */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white border-4 border-indigo-50 shadow-md flex items-center justify-center font-black text-2xl tracking-wider shrink-0">
+          <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white border-4 border-indigo-50 shadow-md flex items-center justify-center font-black text-2xl tracking-wider shrink-0">
             {getInitials(employee.fullName)}
           </div>
 

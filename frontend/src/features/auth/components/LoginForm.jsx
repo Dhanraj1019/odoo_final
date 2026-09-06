@@ -17,7 +17,6 @@ import {
   Calculator,
   User,
   AlertCircle,
-  ArrowRight,
 } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
@@ -27,23 +26,26 @@ const DEMO_ACCOUNTS = [
     email: "admin@peoplepay360.local",
     password: "AdminPassword2026!",
     icon: ShieldCheck,
-    color: "border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-700",
+    colorStyle: "bg-purple-50/70 border-purple-200 text-purple-900 hover:bg-purple-100/70 hover:border-purple-300",
+    iconStyle: "bg-purple-100 text-purple-700 border-purple-200/80",
   },
   {
     role: "HR Manager",
-    title: "HR Mgr",
+    title: "HR Manager",
     email: "hrmanager@peoplepay360.local",
     password: "HRManager2026!",
     icon: Briefcase,
-    color: "border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-700",
+    colorStyle: "bg-blue-50/70 border-blue-200 text-blue-900 hover:bg-blue-100/70 hover:border-blue-300",
+    iconStyle: "bg-blue-100 text-blue-700 border-blue-200/80",
   },
   {
     role: "HR Payroll Manager",
-    title: "Payroll Mgr",
+    title: "Payroll Manager",
     email: "payrollmanager@peoplepay360.local",
     password: "PayrollMgr2026!",
     icon: Calculator,
-    color: "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700",
+    colorStyle: "bg-indigo-50/70 border-indigo-200 text-indigo-900 hover:bg-indigo-100/70 hover:border-indigo-300",
+    iconStyle: "bg-indigo-100 text-indigo-700 border-indigo-200/80",
   },
   {
     role: "HR Payroll User",
@@ -51,15 +53,17 @@ const DEMO_ACCOUNTS = [
     email: "payrolluser@peoplepay360.local",
     password: "PayrollUser2026!",
     icon: UserCheck,
-    color: "border-teal-200 bg-teal-50/70 hover:bg-teal-100 text-teal-700",
+    colorStyle: "bg-teal-50/70 border-teal-200 text-teal-900 hover:bg-teal-100/70 hover:border-teal-300",
+    iconStyle: "bg-teal-100 text-teal-700 border-teal-200/80",
   },
   {
     role: "Employee",
     title: "Employee",
-    email: "nishu@gmailc.om",
-    password: "11111111",
+    email: "employee@peoplepay360.local",
+    password: "Employee2026!",
     icon: User,
-    color: "border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700",
+    colorStyle: "bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100 hover:border-slate-300",
+    iconStyle: "bg-slate-200/70 text-slate-700 border-slate-300/60",
   },
 ];
 
@@ -135,22 +139,22 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {serverError && (
-        <div className="p-3.5 rounded-xl bg-rose-50/90 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2.5 animate-in fade-in">
+        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{serverError}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
         {/* Email Field */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
             Work Email Address
           </label>
           <div className="relative">
-            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
             <input
               type="email"
               placeholder="name@company.com"
@@ -161,46 +165,49 @@ export default function LoginForm() {
                   message: "Invalid email address format",
                 },
               })}
-              className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${errors.email
-                ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
-                : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-                }`}
+              className={`w-full pl-10 pr-4 py-2 bg-white border rounded-xl text-sm transition-all text-slate-900 placeholder:text-slate-400 focus:outline-hidden ${
+                errors.email
+                  ? "border-rose-300 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15"
+                  : "border-slate-200 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-600/12"
+              }`}
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-rose-600 mt-1 font-medium">{errors.email.message}</p>
+            <p className="text-[11px] text-rose-600 mt-1 font-medium">{errors.email.message}</p>
           )}
         </div>
 
         {/* Password Field */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
             Password
           </label>
           <div className="relative">
-            <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
               {...register("password", {
                 required: "Password is required",
               })}
-              className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all text-slate-900 focus:outline-hidden focus:ring-2 ${errors.password
-                ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30"
-                : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-                }`}
+              className={`w-full pl-10 pr-10 py-2 bg-white border rounded-xl text-sm transition-all text-slate-900 placeholder:text-slate-400 focus:outline-hidden ${
+                errors.password
+                  ? "border-rose-300 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15"
+                  : "border-slate-200 focus:border-indigo-600 focus:ring-3 focus:ring-indigo-600/12"
+              }`}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden"
+              className="absolute right-3.5 top-2 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+              aria-label={showPassword ? "Hide password" : "Show password"}
               tabIndex="-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           {errors.password && (
-            <p className="text-xs text-rose-600 mt-1 font-medium">{errors.password.message}</p>
+            <p className="text-[11px] text-rose-600 mt-1 font-medium">{errors.password.message}</p>
           )}
         </div>
 
@@ -208,7 +215,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold text-sm rounded-xl transition-all duration-200 ease-out flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1 shadow-xs"
         >
           {isLoading ? (
             <>
@@ -221,24 +228,39 @@ export default function LoginForm() {
         </button>
       </form>
 
-      {/* Demo Quick-Fill Selector */}
-      <div className="pt-4 border-t border-slate-100">
-        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
-          Demo Roles Quick-Fill
+      {/* Demo Roles Quick-Fill */}
+      <div className="pt-1">
+        <div className="relative my-2.5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Demo Access
+            </span>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {DEMO_ACCOUNTS.map((acc) => {
+
+        <div className="grid grid-cols-2 gap-2">
+          {DEMO_ACCOUNTS.map((acc, idx) => {
             const Icon = acc.icon;
+            const isLast = idx === DEMO_ACCOUNTS.length - 1;
             return (
               <button
                 key={acc.role}
                 type="button"
                 onClick={() => handleQuickFill(acc)}
-                className={`px-2 py-1.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${acc.color}`}
-                title={`Login as ${acc.role}`}
+                className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+                  acc.colorStyle
+                } ${isLast ? "col-span-2 sm:col-span-1" : ""}`}
+                title={`Quick fill as ${acc.role}`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{acc.title}</span>
+                <div
+                  className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${acc.iconStyle}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                <span className="truncate">{acc.title}</span>
               </button>
             );
           })}

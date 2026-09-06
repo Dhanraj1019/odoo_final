@@ -4,7 +4,7 @@ const salaryRulesController = require("../controllers/salaryRules.controller");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
-const READ_ROLES = ["Admin", "HR Payroll User", "HR Payroll Manager"];
+const READ_ROLES = ["Admin", "HR Manager", "HR Payroll User", "HR Payroll Manager"];
 const WRITE_ROLES = ["Admin", "HR Payroll Manager"];
 
 router.get("/", requireAuth, requireRole(...READ_ROLES), salaryRulesController.listSalaryRules);

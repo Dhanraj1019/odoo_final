@@ -16,12 +16,23 @@ export default function MonthlyNetSalaryTrendChart({ data = [] }) {
       <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center min-h-[320px] text-center">
         <TrendingUp className="w-8 h-8 text-slate-300 mb-2" />
         <p className="text-xs font-bold text-slate-700">No Historical Payroll Trend</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">
-          Historical 12-month net salary trends will appear as payroll batches are disbursed over time.
+        <p className="text-[11px] text-slate-400 mt-0.5 max-w-sm">
+          No sufficient payroll history available to display salary trends.
         </p>
       </div>
     );
   }
+
+  // Dynamic Title based on historical depth
+  const chartTitle =
+    data.length >= 12
+      ? "12-Month Net Salary Trend"
+      : "Net Salary Trend (Available Payroll Periods)";
+
+  const chartSubtitle =
+    data.length >= 12
+      ? "Longitudinal 12-month disbursement trend and workforce cost evolution"
+      : `Historical disbursement trend across ${data.length} available payroll period${data.length === 1 ? "" : "s"}`;
 
   // Format month labels (e.g. 2026-08 -> Aug 2026)
   const formatMonth = (str) => {
@@ -56,8 +67,8 @@ export default function MonthlyNetSalaryTrendChart({ data = [] }) {
     <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">12-Month Net Salary Trend</h3>
-          <p className="text-[11px] text-slate-400">Longitudinal disbursement trend and workforce cost evolution</p>
+          <h3 className="text-sm font-bold text-slate-900">{chartTitle}</h3>
+          <p className="text-[11px] text-slate-400">{chartSubtitle}</p>
         </div>
         <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
           <TrendingUp className="w-4 h-4" />
@@ -67,12 +78,6 @@ export default function MonthlyNetSalaryTrendChart({ data = [] }) {
       <div className="w-full h-72 mt-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 15, left: 10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="salaryGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis
               dataKey="month"
@@ -93,8 +98,8 @@ export default function MonthlyNetSalaryTrendChart({ data = [] }) {
               dataKey="amount"
               stroke="#4f46e5"
               strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#salaryGradient)"
+              fillOpacity={0.08}
+              fill="#4f46e5"
               activeDot={{ r: 5, fill: "#4f46e5", stroke: "#ffffff", strokeWidth: 2 }}
             />
           </AreaChart>

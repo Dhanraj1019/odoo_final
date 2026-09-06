@@ -18,6 +18,21 @@ import {
 import contractsApi from "../../../api/contracts";
 import { addNotification } from "../../notifications/notificationSlice";
 
+const formatDateForInput = (dateVal) => {
+  if (!dateVal) return "";
+  if (typeof dateVal === "string") {
+    const match = dateVal.match(/^\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+  }
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+};
+
 export default function ContractFormModal({
   isOpen = false,
   onClose,
@@ -29,12 +44,15 @@ export default function ContractFormModal({
   jobPositions = [],
   salaryStructures = [],
   workingSchedules = [],
+  isLoadingStructures = false,
+  structuresError = "",
 }) {
   const dispatch = useDispatch();
   const isEditing = Boolean(initialData?._id);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [prevEmployeeId, setPrevEmployeeId] = useState("");
 
   const {
     register,
@@ -42,6 +60,7 @@ export default function ContractFormModal({
     reset,
     watch,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -59,11 +78,56 @@ export default function ContractFormModal({
   });
 
   const selectedEmployeeId = watch("employee");
-  const selectedDepartmentId = watch("department");
 
-  // Auto-fill employee's department and job position if selecting a new employee in create mode
+  // Populate form on modal open or when initialData changes
   useEffect(() => {
-    if (!isEditing && selectedEmployeeId) {
+    if (isOpen) {
+      setErrorMessage("");
+      clearErrors();
+      if (initialData && initialData._id) {
+        const empId = initialData.employee?._id || initialData.employee || "";
+        const deptId = initialData.department?._id || initialData.department || "";
+        const posId = initialData.jobPosition?._id || initialData.jobPosition || "";
+        const strId = initialData.salaryStructure?._id || initialData.salaryStructure || "";
+        const schId = initialData.workingSchedule?._id || initialData.workingSchedule || "";
+
+        setPrevEmployeeId(empId);
+
+        reset({
+          contractReference: initialData.contractReference || "",
+          employee: empId,
+          department: deptId,
+          jobPosition: posId,
+          startDate: formatDateForInput(initialData.startDate),
+          endDate: formatDateForInput(initialData.endDate),
+          wagePerMonth: initialData.wagePerMonth != null ? initialData.wagePerMonth : "",
+          salaryStructure: strId,
+          workingSchedule: schId,
+          status: initialData.status || "Draft",
+        });
+      } else {
+        const empId = preselectedEmployeeId || "";
+        setPrevEmployeeId(empId);
+
+        reset({
+          contractReference: "",
+          employee: empId,
+          department: "",
+          jobPosition: "",
+          startDate: new Date().toISOString().slice(0, 10),
+          endDate: "",
+          wagePerMonth: "",
+          salaryStructure: "",
+          workingSchedule: "",
+          status: "Draft",
+        });
+      }
+    }
+  }, [isOpen, initialData, preselectedEmployeeId, reset, clearErrors]);
+
+  // Auto-fill employee's department and job position when selecting a different employee
+  useEffect(() => {
+    if (isOpen && selectedEmployeeId && selectedEmployeeId !== prevEmployeeId) {
       const emp = employees.find((e) => e._id === selectedEmployeeId);
       if (emp) {
         if (emp.department?._id || emp.department) {
@@ -75,47 +139,13 @@ export default function ContractFormModal({
         if (emp.workingSchedule?._id || emp.workingSchedule) {
           setValue("workingSchedule", emp.workingSchedule._id || emp.workingSchedule);
         }
+        if (emp.wage && !isEditing) {
+          setValue("wagePerMonth", emp.wage);
+        }
       }
+      setPrevEmployeeId(selectedEmployeeId);
     }
-  }, [selectedEmployeeId, isEditing, employees, setValue]);
-
-  // Populate form on open
-  useEffect(() => {
-    if (isOpen) {
-      setErrorMessage("");
-      if (initialData) {
-        reset({
-          contractReference: initialData.contractReference || "",
-          employee: initialData.employee?._id || initialData.employee || "",
-          department: initialData.department?._id || initialData.department || "",
-          jobPosition: initialData.jobPosition?._id || initialData.jobPosition || "",
-          startDate: initialData.startDate
-            ? new Date(initialData.startDate).toISOString().slice(0, 10)
-            : "",
-          endDate: initialData.endDate
-            ? new Date(initialData.endDate).toISOString().slice(0, 10)
-            : "",
-          wagePerMonth: initialData.wagePerMonth != null ? initialData.wagePerMonth : "",
-          salaryStructure: initialData.salaryStructure?._id || initialData.salaryStructure || "",
-          workingSchedule: initialData.workingSchedule?._id || initialData.workingSchedule || "",
-          status: initialData.status || "Draft",
-        });
-      } else {
-        reset({
-          contractReference: "",
-          employee: preselectedEmployeeId || "",
-          department: "",
-          jobPosition: "",
-          startDate: new Date().toISOString().slice(0, 10),
-          endDate: "",
-          wagePerMonth: "",
-          salaryStructure: salaryStructures[0]?._id || "",
-          workingSchedule: "",
-          status: "Draft",
-        });
-      }
-    }
-  }, [isOpen, initialData, preselectedEmployeeId, reset, salaryStructures]);
+  }, [selectedEmployeeId, prevEmployeeId, isOpen, employees, setValue, isEditing]);
 
   if (!isOpen) return null;
 
@@ -125,7 +155,7 @@ export default function ContractFormModal({
 
     try {
       const payload = {
-        contractReference: formData.contractReference.trim(),
+        contractReference: formData.contractReference ? formData.contractReference.trim() : "",
         employee: formData.employee,
         department: formData.department || null,
         jobPosition: formData.jobPosition || null,
@@ -144,7 +174,7 @@ export default function ContractFormModal({
         res = await contractsApi.createContract(payload);
       }
 
-      if (res.ok && (res.success || res.data?.contract)) {
+      if (res.ok && (res.success || res.data?.contract || res.contract)) {
         const saved = res.data?.contract || res.contract;
         dispatch(
           addNotification({
@@ -180,7 +210,7 @@ export default function ContractFormModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {isEditing ? `Edit Contract — ${initialData?.contractReference}` : "New Employment Contract"}
+                {isEditing ? `Edit Contract — ${initialData?.contractReference || "Reference"}` : "New Employment Contract"}
               </h2>
               <p className="text-xs text-slate-500">
                 Define compensation terms, validity periods, and wage structures
@@ -190,7 +220,7 @@ export default function ContractFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -217,14 +247,18 @@ export default function ContractFormModal({
                 </label>
                 <select
                   {...register("employee", { required: "Employee is required" })}
-                  disabled={isEditing}
                   className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
                     errors.employee
                       ? "border-rose-400 focus:ring-rose-400/20 bg-rose-50/30"
                       : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  } ${isEditing ? "bg-slate-100 cursor-not-allowed text-slate-500" : ""}`}
+                  }`}
                 >
                   <option value="">— Select Employee —</option>
+                  {initialData?.employee && !employees.some((e) => e._id === (initialData.employee?._id || initialData.employee)) && (
+                    <option value={initialData.employee._id || initialData.employee}>
+                      {initialData.employee.fullName || "Current Employee"} ({initialData.employee.employeeCode || ""})
+                    </option>
+                  )}
                   {employees.map((emp) => (
                     <option key={emp._id} value={emp._id}>
                       {emp.fullName} ({emp.employeeCode}) — {emp.email}
@@ -257,7 +291,7 @@ export default function ContractFormModal({
                 </label>
                 <select
                   {...register("status")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
                   <option value="Draft">Draft</option>
                   <option value="Active">Active</option>
@@ -339,9 +373,14 @@ export default function ContractFormModal({
                 </label>
                 <select
                   {...register("department")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
                   <option value="">— Select Department —</option>
+                  {initialData?.department && !departments.some((d) => d._id === (initialData.department?._id || initialData.department)) && (
+                    <option value={initialData.department._id || initialData.department}>
+                      {initialData.department.name || "Current Department"}
+                    </option>
+                  )}
                   {departments.map((dept) => (
                     <option key={dept._id} value={dept._id}>
                       {dept.name}
@@ -357,9 +396,14 @@ export default function ContractFormModal({
                 </label>
                 <select
                   {...register("jobPosition")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
                   <option value="">— Select Job Position —</option>
+                  {initialData?.jobPosition && !jobPositions.some((p) => p._id === (initialData.jobPosition?._id || initialData.jobPosition)) && (
+                    <option value={initialData.jobPosition._id || initialData.jobPosition}>
+                      {initialData.jobPosition.name || "Current Job Position"}
+                    </option>
+                  )}
                   {jobPositions.map((pos) => (
                     <option key={pos._id} value={pos._id}>
                       {pos.name}
@@ -370,20 +414,50 @@ export default function ContractFormModal({
 
               {/* Salary Structure */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Salary Structure
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Salary Structure
+                  </label>
+                  {isLoadingStructures && (
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" /> Loading...
+                    </span>
+                  )}
+                </div>
                 <select
                   {...register("salaryStructure")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  disabled={isLoadingStructures || (salaryStructures.length === 0 && !initialData?.salaryStructure)}
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  <option value="">— Standard Structure —</option>
-                  {salaryStructures.map((str) => (
-                    <option key={str._id} value={str._id}>
-                      {str.name} ({str.code})
+                  {isLoadingStructures ? (
+                    <option value="">Loading salary structures...</option>
+                  ) : salaryStructures.length === 0 && !initialData?.salaryStructure ? (
+                    <option value="" disabled>
+                      No salary structures available. Create a salary structure first.
                     </option>
-                  ))}
+                  ) : (
+                    <>
+                      <option value="">— Select Salary Structure —</option>
+                      {initialData?.salaryStructure && !salaryStructures.some((s) => (s._id || s.id) === (initialData.salaryStructure?._id || initialData.salaryStructure)) && (
+                        <option value={initialData.salaryStructure._id || initialData.salaryStructure}>
+                          {initialData.salaryStructure.name || "Current Salary Structure"}
+                        </option>
+                      )}
+                      {salaryStructures.map((str) => (
+                        <option key={str._id || str.id} value={str._id || str.id}>
+                          {str.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
+                {structuresError ? (
+                  <p className="text-[11px] text-rose-600 font-medium">{structuresError}</p>
+                ) : !isLoadingStructures && salaryStructures.length === 0 && !initialData?.salaryStructure ? (
+                  <p className="text-[11px] text-amber-600 font-medium">
+                    No salary structures available. Create a salary structure first.
+                  </p>
+                ) : null}
               </div>
 
               {/* Working Schedule (Optional Contract Override) */}
@@ -393,9 +467,14 @@ export default function ContractFormModal({
                 </label>
                 <select
                   {...register("workingSchedule")}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
                   <option value="">— Use Employee Default Schedule —</option>
+                  {initialData?.workingSchedule && !workingSchedules.some((w) => w._id === (initialData.workingSchedule?._id || initialData.workingSchedule)) && (
+                    <option value={initialData.workingSchedule._id || initialData.workingSchedule}>
+                      {initialData.workingSchedule.name || "Current Working Schedule"}
+                    </option>
+                  )}
                   {workingSchedules.map((sch) => (
                     <option key={sch._id} value={sch._id}>
                       {sch.name} ({(sch.totalWeeklyHours || 0).toFixed(1)} hrs/wk)
@@ -411,7 +490,7 @@ export default function ContractFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -419,7 +498,7 @@ export default function ContractFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>

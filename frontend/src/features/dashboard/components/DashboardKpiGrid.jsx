@@ -15,10 +15,10 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
   const totalHeadcount = departmentBreakdown.reduce((sum, d) => sum + (d.headcount || 0), 0);
 
   return (
-    <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFull ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4"} gap-4`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFull ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4"} gap-3.5 sm:gap-4`}>
       {/* 1. Total Net Salary Paid (Full Scope Only) */}
       {isFull && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               Total Net Salary
@@ -38,7 +38,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
 
       {/* 2. Average Salary (Full Scope Only) */}
       {isFull && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               Avg Net Salary
@@ -58,7 +58,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
 
       {/* 3. Payslips Processed (Full Scope Only) */}
       {isFull && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               Payslips Processed
@@ -78,7 +78,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
 
       {/* 4. Active Workforce (HR Scope only) */}
       {!isFull && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               Active Workforce
@@ -97,7 +97,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
       )}
 
       {/* 5. Approved Time Off Days */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
             Approved Leave
@@ -115,7 +115,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
       </div>
 
       {/* 6. Attendance Health */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
             Attendance Health
@@ -133,7 +133,7 @@ export default function DashboardKpiGrid({ kpis = {}, scope = "full", attendance
       </div>
 
       {/* 7. Workforce Coverage */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between min-h-[125px]">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[125px]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
             Shift Coverage

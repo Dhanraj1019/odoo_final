@@ -156,10 +156,10 @@ export default function EmployeeListTable({
       columns={columns}
       data={employees}
       keyField="_id"
-      searchPlaceholder="Search employees by name, code, email, department..."
+      searchable={false}
       isLoading={isLoading}
       emptyMessage="No employees found"
-      emptySubMessage="Try adjusting your search criteria or add a new employee."
+      emptySubMessage="Try adjusting your search criteria or clear your active filters."
       onRowClick={handleRowClick}
     />
   );
