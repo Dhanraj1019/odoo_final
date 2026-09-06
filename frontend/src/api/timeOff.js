@@ -266,6 +266,33 @@ class TimeOffAPI {
   // ==================== TIME OFF REQUESTS ====================
 
   /**
+   * Calculate duration based on employee working schedule: GET /api/time-off-requests/calculate-duration
+   */
+  async calculateDuration(params = {}) {
+    try {
+      const query = new URLSearchParams();
+      if (params.employee) query.append("employee", params.employee);
+      if (params.startDate) query.append("startDate", params.startDate);
+      if (params.endDate) query.append("endDate", params.endDate);
+      if (params.unit) query.append("unit", params.unit);
+
+      const qs = query.toString();
+      const url = `${BASE_URL}/api/time-off-requests/calculate-duration?${qs}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const result = await response.json();
+      return { ok: response.ok, ...result };
+    } catch (error) {
+      console.error("calculateDuration error:", error);
+      return { ok: false, success: false, message: error.message || "Failed to calculate duration" };
+    }
+  }
+
+  /**
    * List requests: GET /api/time-off-requests?employee=&timeOffType=&status=
    */
   async listRequests(params = {}) {

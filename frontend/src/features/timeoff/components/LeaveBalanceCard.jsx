@@ -22,6 +22,11 @@ export default function LeaveBalanceCard({
   const [isLoading, setIsLoading] = useState(true);
 
   const loadBalances = useCallback(async () => {
+    if (!employeeId) {
+      setAllocations([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const [allocRes, typesRes] = await Promise.all([
@@ -33,13 +38,20 @@ export default function LeaveBalanceCard({
       ]);
 
       if (allocRes.ok && (allocRes.data?.allocations || allocRes.allocations)) {
-        setAllocations(allocRes.data?.allocations || allocRes.allocations || []);
+        const rawList = allocRes.data?.allocations || allocRes.allocations || [];
+        const uniqueAllocations = Array.from(
+          new Map(rawList.map((a) => [String(a._id || a.id), a])).values()
+        );
+        setAllocations(uniqueAllocations);
+      } else {
+        setAllocations([]);
       }
       if (typesRes.ok) {
         setTypes(typesRes.data?.timeOffTypes || []);
       }
     } catch (err) {
       console.error("Failed to load leave balances:", err);
+      setAllocations([]);
     } finally {
       setIsLoading(false);
     }

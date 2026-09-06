@@ -268,6 +268,124 @@ exports.getRequestById = async (id, user = null) => {
   return request;
 };
 
+/**
+ * Validates whether an employee's requested time off date range and duration are covered by valid approved allocations.
+ *
+ * Enforces:
+ * 1. Matching employee and TimeOffType
+ * 2. Allocation status is "Approved"
+ * 3. request.startDate >= allocation.validFrom (if validFrom is specified)
+ * 4. request.endDate <= allocation.validTo (if validTo is specified)
+ * 5. Sum of remainingAmount across covering allocations >= request.duration
+ */
+const validateAndGetCoveringAllocations = async (
+  employeeId,
+  timeOffTypeId,
+  startDate,
+  endDate,
+  duration
+) => {
+  const timeOffType = await TimeOffType.findById(timeOffTypeId);
+  if (!timeOffType) {
+    const err = new Error("Invalid time off type");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Leave types that do not require allocation (e.g. Unpaid Leave) bypass allocation checks
+  if (!timeOffType.requiresAllocation) {
+    return { timeOffType, coveringAllocations: [], totalRemaining: Infinity };
+  }
+
+  const allApprovedAllocations = await TimeOffAllocation.find({
+    employee: employeeId,
+    timeOffType: timeOffTypeId,
+    status: "Approved",
+  });
+
+  if (allApprovedAllocations.length === 0) {
+    const err = new Error(
+      `No approved leave allocation found for "${timeOffType.name}". Please obtain a leave allocation before applying.`
+    );
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const reqStart = normalizeDate(startDate);
+  const reqEnd = normalizeDate(endDate);
+
+  if (reqStart > reqEnd) {
+    const err = new Error("Start date cannot be after end date");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Filter allocations where the requested range falls completely within [validFrom, validTo]
+  const coveringAllocations = allApprovedAllocations.filter((alloc) => {
+    const allocFrom = alloc.validFrom ? normalizeDate(alloc.validFrom) : null;
+    const allocTo = alloc.validTo ? normalizeDate(alloc.validTo) : null;
+
+    if (allocFrom && reqStart < allocFrom) return false;
+    if (allocTo && reqEnd > allocTo) return false;
+    return true;
+  });
+
+  if (coveringAllocations.length === 0) {
+    const hasAnyFuture = allApprovedAllocations.some(
+      (a) => a.validFrom && reqStart < normalizeDate(a.validFrom)
+    );
+    const hasAnyPast = allApprovedAllocations.some(
+      (a) => a.validTo && reqEnd > normalizeDate(a.validTo)
+    );
+
+    const sStr = new Date(startDate).toISOString().slice(0, 10);
+    const eStr = new Date(endDate).toISOString().slice(0, 10);
+    let message = `The requested leave period (${sStr} to ${eStr}) falls outside the validity period of your approved "${timeOffType.name}" allocation.`;
+    if (hasAnyFuture && !hasAnyPast) {
+      message = `Requested start date (${sStr}) is before your "${timeOffType.name}" allocation validity period starts.`;
+    } else if (hasAnyPast && !hasAnyFuture) {
+      message = `Requested end date (${eStr}) exceeds your "${timeOffType.name}" allocation validity period.`;
+    }
+
+    const err = new Error(message);
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const totalRemaining = coveringAllocations.reduce(
+    (sum, a) => sum + (typeof a.remainingAmount === "number" ? a.remainingAmount : 0),
+    0
+  );
+
+  if (totalRemaining < duration) {
+    const err = new Error(
+      `Insufficient leave balance for "${timeOffType.name}". You have ${totalRemaining} ${
+        timeOffType.unit || "days"
+      } available in the active validity period, but requested ${duration} ${
+        timeOffType.unit || "days"
+      }.`
+    );
+    err.statusCode = 409;
+    throw err;
+  }
+
+  return { timeOffType, coveringAllocations, totalRemaining };
+};
+
+const deductFromAllocations = async (coveringAllocations, duration) => {
+  let toDeduct = duration;
+  for (const alloc of coveringAllocations) {
+    if (toDeduct <= 0) break;
+    const avail = alloc.remainingAmount;
+    if (avail > 0) {
+      const deduct = Math.min(avail, toDeduct);
+      alloc.takenAmount += deduct;
+      await alloc.save();
+      toDeduct -= deduct;
+    }
+  }
+};
+
 exports.createRequest = async (data, user = null) => {
   const isHrOrAdmin =
     user &&
@@ -277,8 +395,8 @@ exports.createRequest = async (data, user = null) => {
     );
 
   let employeeId = data.employee;
-  if (!isHrOrAdmin) {
-    if (!user || !user.employee) {
+  if (user && !isHrOrAdmin) {
+    if (!user.employee) {
       const err = new Error("No Employee record linked to account");
       err.statusCode = 400;
       throw err;
@@ -299,10 +417,37 @@ exports.createRequest = async (data, user = null) => {
     throw err;
   }
 
-  const duration =
-    data.duration !== undefined
-      ? Number(data.duration)
-      : await calculateDuration(employeeId, data.startDate, data.endDate, timeOffType.unit);
+  const sDate = normalizeDate(data.startDate);
+  const eDate = normalizeDate(data.endDate);
+
+  if (sDate > eDate) {
+    const err = new Error("End date cannot be earlier than the start date.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // STEP 5 & 9: Strictly calculate duration on server using employee's working schedule
+  const duration = await calculateDuration(
+    employeeId,
+    data.startDate,
+    data.endDate,
+    timeOffType.unit
+  );
+
+  if (duration <= 0) {
+    const err = new Error("No working days found in the selected leave date range.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Validate allocation date range validity and balance
+  const { coveringAllocations } = await validateAndGetCoveringAllocations(
+    employeeId,
+    data.timeOffType,
+    data.startDate,
+    data.endDate,
+    duration
+  );
 
   const request = new TimeOffRequest({
     employee: employeeId,
@@ -317,30 +462,7 @@ exports.createRequest = async (data, user = null) => {
 
   // Auto-deduct allocation if requiresApproval is false and requiresAllocation is true
   if (timeOffType.requiresApproval === false && timeOffType.requiresAllocation) {
-    const allocations = await TimeOffAllocation.find({
-      employee: employeeId,
-      timeOffType: data.timeOffType,
-      status: "Approved",
-    });
-
-    const totalRemaining = allocations.reduce((sum, a) => sum + a.remainingAmount, 0);
-    if (totalRemaining < duration) {
-      const err = new Error("Insufficient leave balance");
-      err.statusCode = 409;
-      throw err;
-    }
-
-    let toDeduct = duration;
-    for (const alloc of allocations) {
-      if (toDeduct <= 0) break;
-      const avail = alloc.remainingAmount;
-      if (avail > 0) {
-        const deduct = Math.min(avail, toDeduct);
-        alloc.takenAmount += deduct;
-        await alloc.save();
-        toDeduct -= deduct;
-      }
-    }
+    await deductFromAllocations(coveringAllocations, duration);
   }
 
   await request.save();
@@ -362,30 +484,15 @@ exports.approveRequest = async (id, approverUser) => {
   const timeOffType = request.timeOffType;
 
   if (timeOffType && timeOffType.requiresAllocation) {
-    const allocations = await TimeOffAllocation.find({
-      employee: request.employee,
-      timeOffType: timeOffType._id,
-      status: "Approved",
-    });
+    const { coveringAllocations } = await validateAndGetCoveringAllocations(
+      request.employee,
+      timeOffType._id,
+      request.startDate,
+      request.endDate,
+      request.duration
+    );
 
-    const totalRemaining = allocations.reduce((sum, a) => sum + a.remainingAmount, 0);
-    if (totalRemaining < request.duration) {
-      const err = new Error("Insufficient leave balance");
-      err.statusCode = 409;
-      throw err;
-    }
-
-    let toDeduct = request.duration;
-    for (const alloc of allocations) {
-      if (toDeduct <= 0) break;
-      const avail = alloc.remainingAmount;
-      if (avail > 0) {
-        const deduct = Math.min(avail, toDeduct);
-        alloc.takenAmount += deduct;
-        await alloc.save();
-        toDeduct -= deduct;
-      }
-    }
+    await deductFromAllocations(coveringAllocations, request.duration);
   }
 
   request.status = "Approved";

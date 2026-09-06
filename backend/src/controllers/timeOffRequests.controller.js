@@ -11,6 +11,27 @@ exports.listRequests = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /api/time-off-requests/calculate-duration
+ */
+exports.calculateDuration = asyncHandler(async (req, res) => {
+  const { employee, startDate, endDate, unit } = req.query;
+  if (!startDate || !endDate) {
+    return error(res, "startDate and endDate are required", 400);
+  }
+  const employeeId =
+    employee ||
+    (req.user?.employee ? req.user.employee._id || req.user.employee : null);
+
+  const duration = await timeOffService.calculateDuration(
+    employeeId,
+    startDate,
+    endDate,
+    unit || "Days"
+  );
+  return success(res, { duration });
+});
+
+/**
  * GET /api/time-off-requests/:id
  */
 exports.getRequestById = asyncHandler(async (req, res) => {

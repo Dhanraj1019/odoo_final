@@ -11,6 +11,7 @@ const formulaEngine = require("./formulaEngine.service");
 require("../models/Department");
 require("../models/JobPosition");
 require("../models/WorkingSchedule");
+require("../models/User");
 
 /**
  * Normalizes date to midnight UTC

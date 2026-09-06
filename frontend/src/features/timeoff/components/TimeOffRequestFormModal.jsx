@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   X,
   Calendar,
@@ -14,9 +14,35 @@ import {
   Send,
   Sparkles,
   Info,
+  Lock,
+  ArrowRight,
 } from "lucide-react";
 import timeOffApi from "../../../api/timeOff";
 import { addNotification } from "../../notifications/notificationSlice";
+
+const formatDateDisplay = (dateVal) => {
+  if (!dateVal) return "Open";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "Open";
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const month = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  return `${day} ${month} ${year}`;
+};
 
 export default function TimeOffRequestFormModal({
   isOpen = false,
@@ -29,10 +55,19 @@ export default function TimeOffRequestFormModal({
   timeOffTypes = [],
 }) {
   const dispatch = useDispatch();
+  const currentUser = useSelector((state) => state.auth.user);
+  const currentEmployeeId =
+    currentUser?.employee?._id ||
+    currentUser?.employeeId ||
+    (typeof currentUser?.employee === "string" ? currentUser.employee : "");
+
   const isEditing = Boolean(initialData?._id);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [employeeAllocations, setEmployeeAllocations] = useState([]);
+  const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
+  const [isCalculatingDuration, setIsCalculatingDuration] = useState(false);
 
   const {
     register,
@@ -56,28 +91,115 @@ export default function TimeOffRequestFormModal({
   const endDateVal = watch("endDate");
   const durationVal = watch("duration");
   const selectedTypeId = watch("timeOffType");
+  const selectedEmployeeId = watch("employee");
 
-  const selectedTypeObj = timeOffTypes.find((t) => t._id === selectedTypeId);
+  const effectiveEmployeeId =
+    selectedEmployeeId || preselectedEmployeeId || (isEmployeeView ? currentEmployeeId : "");
+  const selectedTypeObj = timeOffTypes.find((t) => String(t._id) === String(selectedTypeId));
+  const selectedEmployeeObj = employees.find((e) => String(e._id) === String(effectiveEmployeeId));
 
-  // Preview of days between start and end date based on weekdays
+  // STEP 1 & 2: Fetch approved allocations for live validity date range & quota feedback
   useEffect(() => {
-    if (startDateVal && endDateVal) {
-      const s = new Date(startDateVal);
-      const e = new Date(endDateVal);
-      if (s <= e) {
-        let count = 0;
-        const cur = new Date(s);
-        while (cur <= e) {
-          const day = cur.getUTCDay();
-          if (day !== 0 && day !== 6) {
-            count++; // default 5-day week estimation for display
-          }
-          cur.setUTCDate(cur.getUTCDate() + 1);
-        }
-        setValue("duration", String(Math.max(1, count)));
+    async function loadAllocations() {
+      if (!isOpen || !effectiveEmployeeId) {
+        setEmployeeAllocations([]);
+        setIsLoadingAllocations(false);
+        return;
+      }
+      setIsLoadingAllocations(true);
+      try {
+        const res = await timeOffApi.listAllocations({
+          employee: effectiveEmployeeId,
+          status: "Approved",
+        });
+        const rawAllocations = res.ok ? res.data?.allocations || res.allocations || [] : [];
+
+        // STEP 3: Deduplicate allocations by unique database ID (_id / id)
+        const uniqueAllocations = Array.from(
+          new Map(rawAllocations.map((a) => [String(a._id || a.id), a])).values()
+        );
+
+        setEmployeeAllocations(uniqueAllocations);
+      } catch (err) {
+        console.error("Failed to load allocations for validation:", err);
+        setEmployeeAllocations([]);
+      } finally {
+        setIsLoadingAllocations(false);
       }
     }
-  }, [startDateVal, endDateVal, setValue]);
+    loadAllocations();
+  }, [isOpen, effectiveEmployeeId]);
+
+  // STEP 2 & 9: Dynamic Duration Recalculation based on working schedule
+  const recomputeDuration = useCallback(async () => {
+    if (!startDateVal || !endDateVal) {
+      setValue("duration", "0");
+      return;
+    }
+
+    const s = new Date(startDateVal);
+    const e = new Date(endDateVal);
+
+    if (s > e) {
+      setValue("duration", "0");
+      return;
+    }
+
+    // 1. Immediate client estimation using employee working schedule or Monday-Friday
+    let workingDaysSet = new Set(["monday", "tuesday", "wednesday", "thursday", "friday"]);
+    if (
+      selectedEmployeeObj &&
+      selectedEmployeeObj.workingSchedule &&
+      Array.isArray(selectedEmployeeObj.workingSchedule.days) &&
+      selectedEmployeeObj.workingSchedule.days.length > 0
+    ) {
+      workingDaysSet = new Set(
+        selectedEmployeeObj.workingSchedule.days
+          .filter((d) => d.day)
+          .map((d) => d.day.toLowerCase())
+      );
+    }
+
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    let clientCount = 0;
+    const cur = new Date(s);
+    while (cur <= e) {
+      const dayName = days[cur.getUTCDay()];
+      if (workingDaysSet.has(dayName)) {
+        clientCount++;
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+
+    setValue("duration", String(clientCount));
+
+    // 2. Authoritative server-side calculation query
+    if (effectiveEmployeeId) {
+      setIsCalculatingDuration(true);
+      try {
+        const res = await timeOffApi.calculateDuration({
+          employee: effectiveEmployeeId,
+          startDate: startDateVal,
+          endDate: endDateVal,
+          unit: selectedTypeObj?.unit || "Days",
+        });
+
+        if (res.ok && res.data?.duration !== undefined) {
+          setValue("duration", String(res.data.duration));
+        } else if (res.ok && res.duration !== undefined) {
+          setValue("duration", String(res.duration));
+        }
+      } catch (err) {
+        console.error("Server duration calculation failed, using schedule estimate:", err);
+      } finally {
+        setIsCalculatingDuration(false);
+      }
+    }
+  }, [startDateVal, endDateVal, effectiveEmployeeId, selectedTypeObj?.unit, selectedEmployeeObj, setValue]);
+
+  useEffect(() => {
+    recomputeDuration();
+  }, [recomputeDuration]);
 
   useEffect(() => {
     if (isOpen) {
@@ -109,11 +231,261 @@ export default function TimeOffRequestFormModal({
     }
   }, [isOpen, initialData, preselectedEmployeeId, reset, timeOffTypes]);
 
+  // STEP 3, 4, 6, 7 & 8: Live Allocation Validity, Quota & Remaining Balance Verification
+  const allocationFeedback = React.useMemo(() => {
+    // Check Date Order first
+    if (startDateVal && endDateVal) {
+      const sDate = new Date(startDateVal);
+      const eDate = new Date(endDateVal);
+      if (sDate > eDate) {
+        return {
+          isApplicable: true,
+          isValid: false,
+          severity: "error",
+          title: "Invalid Date Range",
+          message: "End date cannot be earlier than the start date.",
+          availableDays: 0,
+          requestedDays: 0,
+          remainingAfterRequest: 0,
+          validityRanges: [],
+        };
+      }
+    }
+
+    if (!selectedTypeObj || selectedTypeObj.requiresAllocation === false) {
+      return { isApplicable: false, isValid: true, message: null };
+    }
+
+    if (!effectiveEmployeeId) {
+      return {
+        isApplicable: true,
+        isValid: false,
+        severity: "info",
+        title: "Select Employee",
+        message: "Please select an employee to view available quota and validity.",
+        availableDays: 0,
+        requestedDays: 0,
+        remainingAfterRequest: 0,
+        validityRanges: [],
+      };
+    }
+
+    // Step 3 & 4: Deduplicate allocations and filter by employee & leave type
+    const uniqueAllocations = Array.from(
+      new Map(employeeAllocations.map((a) => [String(a._id || a.id), a])).values()
+    );
+
+    const typeAllocations = uniqueAllocations.filter((a) => {
+      const aEmpId = String(a.employee?._id || a.employee || "");
+      const aTypeId = String(a.timeOffType?._id || a.timeOffType || "");
+      const targetEmpId = String(effectiveEmployeeId);
+      const targetTypeId = String(selectedTypeId);
+      return (
+        a.status === "Approved" &&
+        aEmpId === targetEmpId &&
+        aTypeId === targetTypeId
+      );
+    });
+
+    if (typeAllocations.length === 0) {
+      return {
+        isApplicable: true,
+        isValid: false,
+        severity: "error",
+        title: "No Quota Allocated",
+        message: `No approved allocation found for "${selectedTypeObj.name}". You must have an approved leave allocation before applying.`,
+        availableDays: 0,
+        requestedDays: 0,
+        remainingAfterRequest: 0,
+        validityRanges: [],
+      };
+    }
+
+    // Step 5: Deduplicate validity periods using valid_from + valid_until
+    const periodMap = new Map();
+    for (const alloc of typeAllocations) {
+      const fromStr = alloc.validFrom
+        ? new Date(alloc.validFrom).toISOString().slice(0, 10)
+        : "Open";
+      const toStr = alloc.validTo ? new Date(alloc.validTo).toISOString().slice(0, 10) : "Open";
+      const key = `${fromStr}::${toStr}`;
+
+      const rem =
+        typeof alloc.remainingAmount === "number"
+          ? alloc.remainingAmount
+          : Math.max(0, (Number(alloc.allocatedAmount) || 0) - (Number(alloc.takenAmount) || 0));
+
+      if (!periodMap.has(key)) {
+        periodMap.set(key, {
+          key,
+          validFrom: alloc.validFrom,
+          validTo: alloc.validTo,
+          fromStr,
+          toStr,
+          formattedRange: `${formatDateDisplay(alloc.validFrom)} → ${formatDateDisplay(
+            alloc.validTo
+          )}`,
+          remainingDays: rem,
+        });
+      } else {
+        const existing = periodMap.get(key);
+        existing.remainingDays += rem;
+      }
+    }
+    const uniquePeriods = Array.from(periodMap.values());
+
+    if (!startDateVal || !endDateVal) {
+      const totalAvail = uniquePeriods.reduce((sum, p) => sum + p.remainingDays, 0);
+      return {
+        isApplicable: true,
+        isValid: true,
+        severity: "info",
+        title: "Select Leave Dates",
+        availableDays: totalAvail,
+        requestedDays: 0,
+        remainingAfterRequest: totalAvail,
+        validityRanges: uniquePeriods,
+      };
+    }
+
+    const sDate = new Date(startDateVal);
+    const eDate = new Date(endDateVal);
+
+    // Step 6 & 7: Filter allocations that cover the requested date range
+    const coveringAllocations = typeAllocations.filter((alloc) => {
+      const aFrom = alloc.validFrom ? new Date(alloc.validFrom) : null;
+      const aTo = alloc.validTo ? new Date(alloc.validTo) : null;
+      if (aFrom && sDate < aFrom) return false;
+      if (aTo && eDate > aTo) return false;
+      return true;
+    });
+
+    if (coveringAllocations.length === 0) {
+      const hasFuture = typeAllocations.some((a) => a.validFrom && sDate < new Date(a.validFrom));
+      const hasPast = typeAllocations.some((a) => a.validTo && eDate > new Date(a.validTo));
+
+      let msg = "Selected leave dates are outside your allocated quota validity period.";
+      if (hasFuture && !hasPast) {
+        msg = `Selected start date (${startDateVal}) is before your "${selectedTypeObj.name}" allocation validity period starts.`;
+      } else if (hasPast && !hasFuture) {
+        msg = `Selected end date (${endDateVal}) exceeds your "${selectedTypeObj.name}" allocation validity period.`;
+      }
+
+      return {
+        isApplicable: true,
+        isValid: false,
+        severity: "error",
+        title: "Allocation Period Conflict",
+        message: msg,
+        availableDays: 0,
+        requestedDays: Number(durationVal) || 0,
+        remainingAfterRequest: 0,
+        validityRanges: uniquePeriods,
+      };
+    }
+
+    // Deduplicate covering periods
+    const coveringPeriodMap = new Map();
+    for (const alloc of coveringAllocations) {
+      const fromStr = alloc.validFrom
+        ? new Date(alloc.validFrom).toISOString().slice(0, 10)
+        : "Open";
+      const toStr = alloc.validTo ? new Date(alloc.validTo).toISOString().slice(0, 10) : "Open";
+      const key = `${fromStr}::${toStr}`;
+
+      const rem =
+        typeof alloc.remainingAmount === "number"
+          ? alloc.remainingAmount
+          : Math.max(0, (Number(alloc.allocatedAmount) || 0) - (Number(alloc.takenAmount) || 0));
+
+      if (!coveringPeriodMap.has(key)) {
+        coveringPeriodMap.set(key, {
+          key,
+          validFrom: alloc.validFrom,
+          validTo: alloc.validTo,
+          fromStr,
+          toStr,
+          formattedRange: `${formatDateDisplay(alloc.validFrom)} → ${formatDateDisplay(
+            alloc.validTo
+          )}`,
+          remainingDays: rem,
+        });
+      } else {
+        const existing = coveringPeriodMap.get(key);
+        existing.remainingDays += rem;
+      }
+    }
+    const coveringUniquePeriods = Array.from(coveringPeriodMap.values());
+    const totalCoveringRemaining = coveringUniquePeriods.reduce(
+      (sum, p) => sum + p.remainingDays,
+      0
+    );
+
+    const requestedDuration = Number(durationVal) || 0;
+
+    if (requestedDuration <= 0) {
+      return {
+        isApplicable: true,
+        isValid: false,
+        severity: "error",
+        title: "No Working Days Selected",
+        message: "The selected date range contains 0 working days according to your assigned working schedule.",
+        availableDays: totalCoveringRemaining,
+        requestedDays: 0,
+        remainingAfterRequest: totalCoveringRemaining,
+        validityRanges: coveringUniquePeriods,
+      };
+    }
+
+    if (requestedDuration > totalCoveringRemaining) {
+      return {
+        isApplicable: true,
+        isValid: false,
+        severity: "error",
+        title: "Insufficient Leave Balance",
+        message: `Insufficient leave balance. You have ${totalCoveringRemaining.toFixed(
+          1
+        )} ${selectedTypeObj.unit || "days"} available, but this request requires ${requestedDuration} ${
+          selectedTypeObj.unit || "days"
+        }.`,
+        availableDays: totalCoveringRemaining,
+        requestedDays: requestedDuration,
+        remainingAfterRequest: totalCoveringRemaining - requestedDuration,
+        validityRanges: coveringUniquePeriods,
+      };
+    }
+
+    return {
+      isApplicable: true,
+      isValid: true,
+      severity: "success",
+      title: "Quota Available",
+      availableDays: totalCoveringRemaining,
+      requestedDays: requestedDuration,
+      remainingAfterRequest: totalCoveringRemaining - requestedDuration,
+      validityRanges: coveringUniquePeriods,
+    };
+  }, [
+    selectedTypeObj,
+    employeeAllocations,
+    effectiveEmployeeId,
+    selectedTypeId,
+    startDateVal,
+    endDateVal,
+    durationVal,
+  ]);
+
   if (!isOpen) return null;
 
   const onSubmit = async (formData) => {
     setIsSubmitting(true);
     setErrorMessage("");
+
+    if (allocationFeedback.isApplicable && !allocationFeedback.isValid) {
+      setErrorMessage(allocationFeedback.message);
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const payload = {
@@ -285,38 +657,142 @@ export default function TimeOffRequestFormModal({
                 </div>
               </div>
 
-              {/* Duration Input */}
+              {/* Duration Field (Read-Only & Auto-Calculated) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Duration ({selectedTypeObj?.unit || "Days"}) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  {...register("duration", {
-                    required: "Duration is required",
-                    min: { value: 0.5, message: "Duration must be at least 0.5" },
-                  })}
-                  className="w-full px-3.5 py-2 bg-white border border-slate-200/90 rounded-xl text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                />
-                {errors.duration && (
-                  <p className="text-xs text-rose-600 font-medium">{errors.duration.message}</p>
-                )}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Duration ({selectedTypeObj?.unit || "Days"})</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <Lock className="w-2.5 h-2.5" />
+                    Auto-Calculated
+                  </span>
+                </div>
+                
+                <div className="relative">
+                  <div className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200/90 rounded-xl text-sm font-bold text-slate-900 flex items-center justify-between shadow-2xs">
+                    <span className="text-sm font-bold font-mono text-indigo-950">
+                      {isCalculatingDuration ? (
+                        <span className="inline-flex items-center gap-1.5 text-slate-500 text-xs font-normal">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                          Calculating working days...
+                        </span>
+                      ) : (
+                        `${durationVal || "0"} ${selectedTypeObj?.unit || "Days"}`
+                      )}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-100 shadow-2xs">
+                      Read-Only
+                    </span>
+                  </div>
+                  {/* Hidden input for react-hook-form registration */}
+                  <input type="hidden" {...register("duration")} />
+                </div>
+                <p className="text-[11px] text-slate-500 font-normal">
+                  Calculated automatically based on the selected dates and working schedule.
+                </p>
               </div>
 
-              {/* Live Duration Estimate Helper Card */}
-              {startDateVal && endDateVal && (
-                <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-xs text-indigo-950">
-                  <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <p className="font-bold">
-                      Estimated Duration: {durationVal || "1"} {selectedTypeObj?.unit?.toLowerCase() || "working days"}
-                    </p>
-                    <p className="text-[11px] text-indigo-700 font-normal">
-                      Period: {startDateVal} → {endDateVal}. Duration follows the employee's assigned working schedule.
-                    </p>
-                  </div>
+              {/* Quota & Allocation Validity Feedback Section */}
+              {allocationFeedback.isApplicable && (
+                <div
+                  className={`p-4 rounded-xl border transition-all ${
+                    allocationFeedback.isValid
+                      ? "bg-slate-50/90 border-slate-200/80"
+                      : "bg-rose-50/80 border-rose-200 text-rose-900"
+                  }`}
+                >
+                  {allocationFeedback.isValid ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Quota Available:
+                        </span>
+                        <span className="text-xs font-black text-indigo-600 font-mono">
+                          {allocationFeedback.availableDays?.toFixed(1)} {selectedTypeObj?.unit || "Days"}
+                        </span>
+                      </div>
+
+                      {allocationFeedback.validityRanges && allocationFeedback.validityRanges.length > 0 && (
+                        <div className="text-xs space-y-1">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                            Valid For:
+                          </span>
+                          {allocationFeedback.validityRanges.length === 1 ? (
+                            <span className="font-semibold text-slate-800 text-xs block">
+                              {allocationFeedback.validityRanges[0].formattedRange}
+                            </span>
+                          ) : (
+                            <div className="space-y-1">
+                              {allocationFeedback.validityRanges.map((p) => (
+                                <div
+                                  key={p.key}
+                                  className="flex items-center justify-between text-xs bg-white px-2.5 py-1 rounded-lg border border-slate-200/60"
+                                >
+                                  <span className="text-slate-600 font-medium text-[11px]">
+                                    {p.formattedRange}
+                                  </span>
+                                  <span className="font-bold text-indigo-600">
+                                    {p.remainingDays.toFixed(1)} {selectedTypeObj?.unit || "Days"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 bg-white rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Requested:
+                          </span>
+                          <span className="font-bold text-slate-900 font-mono text-xs">
+                            {allocationFeedback.requestedDays} {selectedTypeObj?.unit || "Days"}
+                          </span>
+                        </div>
+                        <div className="p-2 bg-white rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Remaining After:
+                          </span>
+                          <span className="font-bold text-emerald-600 font-mono text-xs">
+                            {allocationFeedback.remainingAfterRequest?.toFixed(1)} {selectedTypeObj?.unit || "Days"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2 text-rose-700 font-bold text-xs sm:text-sm">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                        <span>⚠ {allocationFeedback.title || "Insufficient Leave Balance"}</span>
+                      </div>
+                      <p className="text-xs text-rose-700 leading-relaxed font-medium">
+                        {allocationFeedback.message}
+                      </p>
+                      {allocationFeedback.title === "Insufficient Leave Balance" && (
+                        <div className="p-2.5 bg-white/80 rounded-lg border border-rose-200/80 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                              Available:
+                            </span>
+                            <span className="font-bold text-slate-800 font-mono">
+                              {allocationFeedback.availableDays?.toFixed(1)} {selectedTypeObj?.unit || "Days"}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider block">
+                              Requested:
+                            </span>
+                            <span className="font-bold text-rose-700 font-mono">
+                              {allocationFeedback.requestedDays} {selectedTypeObj?.unit || "Days"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -354,8 +830,8 @@ export default function TimeOffRequestFormModal({
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-50"
+              disabled={isSubmitting || (allocationFeedback.isApplicable && !allocationFeedback.isValid) || Number(durationVal) <= 0}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

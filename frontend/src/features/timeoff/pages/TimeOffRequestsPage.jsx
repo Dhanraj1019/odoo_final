@@ -434,7 +434,14 @@ export default function TimeOffRequestsPage() {
       <TimeOffRequestFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        preselectedEmployeeId={employeeFilterId}
+        preselectedEmployeeId={
+          employeeFilterId ||
+          (isEmployeeOnly
+            ? currentUser?.employee?._id ||
+              currentUser?.employeeId ||
+              (typeof currentUser?.employee === "string" ? currentUser.employee : "")
+            : "")
+        }
         isEmployeeView={isEmployeeOnly}
         onSuccess={() => {
           setRefreshCounter((c) => c + 1);

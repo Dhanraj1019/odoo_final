@@ -13,6 +13,7 @@ const HR_ADMIN_ROLES = [
 
 // List and detail routes (filtered server-side based on user role)
 router.get("/", requireAuth, timeOffRequestsController.listRequests);
+router.get("/calculate-duration", requireAuth, timeOffRequestsController.calculateDuration);
 router.get("/:id", requireAuth, timeOffRequestsController.getRequestById);
 
 // Submit request (Employee or HR/Admin)
